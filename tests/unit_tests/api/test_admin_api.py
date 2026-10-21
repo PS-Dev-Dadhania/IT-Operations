@@ -1,5 +1,7 @@
 """Unit tests for Phase 13-F Admin Operations API and RBAC route protection."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 

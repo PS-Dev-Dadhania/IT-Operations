@@ -1,5 +1,7 @@
 """Unit tests for typed IT Operations MCP tools and FastMCP registration."""
 
+from __future__ import annotations
+
 import pytest
 
 from mcp_rag_agent.agent.models import (

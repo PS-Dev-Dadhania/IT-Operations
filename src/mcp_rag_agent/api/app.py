@@ -3,12 +3,12 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from mcp_rag_agent.agent.create_agent import create_rag_agent_instance
@@ -153,9 +153,12 @@ def create_app(
             },
         )
 
-    # 4. Root information endpoint
+    # 4. Root & Browser Navigation endpoints
     @app.get("/", tags=["Root"], summary="API Root Information")
-    async def root_info() -> dict[str, str]:
+    async def root_endpoint(request: Request) -> Any:
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return RedirectResponse(url="/ui")
         return {
             "name": "MCP RAG Agent API",
             "version": "0.1.0",

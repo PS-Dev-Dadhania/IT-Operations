@@ -1,41 +1,21 @@
 @echo off
+title IT Operations & Support Copilot - Local Launcher
+echo =========================================================================
+echo Starting IT Operations & Support Copilot (Localhost Mode)
+echo =========================================================================
 
+echo.
+echo Launching server on http://127.0.0.1:8000 ...
+echo Opening http://localhost:8000 in your browser...
+echo.
 
-set REPO_NAME=mcp-rag-agent
-echo Start setting up the %REPO_NAME% repository
+:: Automatically open browser
+start /b cmd /c "timeout /t 2 /nobreak >nul && start http://localhost:8000"
 
-
-echo ****************************************
-echo Install pip using ensurepip and upgrade
-echo ****************************************
-python -m ensurepip --upgrade
-python -m pip install --upgrade pip
-if "%errorlevel%" neq 0 (
-    echo Failed to ensure the installation of pip for Python
+:: Launch ASGI app
+py -3.12 -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
+if %errorlevel% neq 0 (
+    python -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
 )
 
-
-echo ****************************************
-echo Create and Activate Virtual Environment
-echo ****************************************
-call python -m venv venv 
-call .\venv\Scripts\activate
-if "%errorlevel%" neq 0 (
-    echo Failed to create and activate virtual environment
-)
-
-
-echo ****************************************
-echo Install Requirements
-echo ****************************************
-python -m pip install --upgrade pip
-pip install -r requirements_dev.txt
-pip install -e .
-if "%errorlevel%" neq 0 (
-    echo Failed to install requirements for development
-)
-
-
-echo ****************************************
-echo Finish setting up the %REPO_NAME% repository
-echo ****************************************
+pause

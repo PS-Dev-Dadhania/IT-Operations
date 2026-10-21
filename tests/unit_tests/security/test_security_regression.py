@@ -1,5 +1,7 @@
 """Security regression tests for cross-user isolation, privilege escalation, and approval gating."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 

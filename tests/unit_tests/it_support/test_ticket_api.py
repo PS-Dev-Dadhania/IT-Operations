@@ -1,5 +1,7 @@
 """HTTP contract tests for the IT ticket routes without a live MongoDB connection."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient

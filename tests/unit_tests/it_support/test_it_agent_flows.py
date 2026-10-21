@@ -1,5 +1,7 @@
 """Integration and workflow tests for IT Operations agent capabilities and tool binding."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

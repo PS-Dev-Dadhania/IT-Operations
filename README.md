@@ -573,18 +573,17 @@ FEATURE_FLAG_IT_SUPPORT_ENABLED=true
 python scripts/seed_it_operations_data.py
 ```
 
-### 4. Start the Application
-```bash
-# Start FastAPI application
-python -m uvicorn mcp_rag_agent.api.app:app --host 0.0.0.0 --port 8000 --reload
-```
-Open your browser at `http://localhost:8000` to access the chat and operations console.
+### 4. Start the Application (Localhost)
+Run the application directly using Python or the provided Windows launcher:
 
-### 5. Running with Docker Compose
 ```bash
-docker compose up -d --build
-docker compose ps
+# Windows launcher (starts backend and automatically opens your browser):
+start_app.bat
+
+# Or launch via Uvicorn CLI:
+py -3.12 -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
 ```
+Open your browser at **`http://localhost:8000`** (or `http://127.0.0.1:8000/ui`) to access the IT Operations & Support Copilot web console.
 
 ---
 

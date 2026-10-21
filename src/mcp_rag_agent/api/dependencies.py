@@ -14,7 +14,11 @@ from mcp_rag_agent.it_support.incidents.store import IncidentStore
 from mcp_rag_agent.it_support.tickets.service import TicketService
 from mcp_rag_agent.it_support.tickets.store import TicketStore
 from mcp_rag_agent.mongodb import MongoDBClient
-from mcp_rag_agent.security.audit import AuditService, AuditStore
+from mcp_rag_agent.security.audit import (
+    AuditService,
+    AuditStore,
+    _get_default_seed_audits,
+)
 from mcp_rag_agent.security.authorization import AuthorizationService
 from mcp_rag_agent.security.rbac import (
     Permission,
@@ -77,9 +81,12 @@ def get_it_ticket_service(request: Request) -> ITTicketAPIService:
     global _default_it_ticket_service
     if _default_it_ticket_service is None:
         cfg = get_config(request)
-        store = TicketStore(
-            MongoDBClient(cfg.db_url, cfg.db_name), cfg.db_tickets_collection
+        mongo = (
+            MongoDBClient(cfg.db_url, cfg.db_name)
+            if (cfg.db_url and cfg.db_name)
+            else None
         )
+        store = TicketStore(mongo, cfg.db_tickets_collection)
         _default_it_ticket_service = ITTicketAPIService(TicketService(store))
     return _default_it_ticket_service
 
@@ -94,10 +101,18 @@ def get_admin_service(request: Request) -> AdminAPIService:
     global _default_admin_service
     if _default_admin_service is None:
         cfg = get_config(request)
-        mongo = MongoDBClient(cfg.db_url, cfg.db_name)
+        mongo = (
+            MongoDBClient(cfg.db_url, cfg.db_name)
+            if (cfg.db_url and cfg.db_name)
+            else None
+        )
         t_store = TicketStore(mongo, cfg.db_tickets_collection)
         inc_store = IncidentStore(mongo, "it_incidents")
-        aud_store = AuditStore(mongo, "it_audit_logs")
+        aud_store = AuditStore(
+            mongo,
+            "it_audit_logs",
+            initial_records=_get_default_seed_audits() if mongo is None else None,
+        )
         _default_admin_service = AdminAPIService(
             ticket_service=TicketService(t_store),
             incident_service=IncidentService(inc_store),

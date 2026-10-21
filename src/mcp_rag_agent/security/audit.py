@@ -67,6 +67,50 @@ class AuditEvent(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+def _get_default_seed_audits() -> list[AuditEvent]:
+    return [
+        AuditEvent(
+            event_id="AUD-3001",
+            request_id="req-init-001",
+            user_id="user_emp_demo",
+            role=Role.EMPLOYEE,
+            action="execute_troubleshooting_runbook",
+            resource_type="runbook",
+            resource_id="RB-NET-VPN-001",
+            authorization_result="AUTHORIZED",
+            risk_level=RiskLevel.LOW,
+            status="success",
+            details={"step": "restart_vpn_service", "target": "local_client"},
+        ),
+        AuditEvent(
+            event_id="AUD-3002",
+            request_id="req-init-002",
+            user_id="it_admin_ops",
+            role=Role.IT_ADMIN,
+            action="query_kpi_dashboard",
+            resource_type="telemetry",
+            resource_id="operations_metrics",
+            authorization_result="AUTHORIZED",
+            risk_level=RiskLevel.LOW,
+            status="success",
+            details={"view": "dashboard-view"},
+        ),
+        AuditEvent(
+            event_id="AUD-3003",
+            request_id="req-init-003",
+            user_id="sec_analyst_01",
+            role=Role.SECURITY_ANALYST,
+            action="contain_phishing_incident",
+            resource_type="incident",
+            resource_id="INC-2001",
+            authorization_result="AUTHORIZED",
+            risk_level=RiskLevel.CRITICAL,
+            status="success",
+            details={"action": "quarantine_email_tokens"},
+        ),
+    ]
+
+
 class AuditStore:
     """Persistence store for security audit records."""
 
@@ -74,15 +118,19 @@ class AuditStore:
         self,
         mongo_client: Optional[MongoDBClient] = None,
         collection_name: str = "it_audit_logs",
+        initial_records: Optional[list[AuditEvent]] = None,
     ) -> None:
         self._mongo_client = mongo_client
         self._collection_name = collection_name
-        self._in_memory_records: list[AuditEvent] = []
+        self._in_memory_records: list[AuditEvent] = list(initial_records) if initial_records is not None else []
 
     @property
     def _collection(self) -> Any:
-        if self._mongo_client is not None:
-            return self._mongo_client.get_collection(self._collection_name)
+        if self._mongo_client is not None and getattr(self._mongo_client, "_uri", None):
+            try:
+                return self._mongo_client.get_collection(self._collection_name)
+            except Exception:
+                return None
         return None
 
     def insert(self, event: AuditEvent) -> AuditEvent:
