@@ -92,7 +92,7 @@ class Config(BaseSettings):
     # MCP server settings
     mcp_name: str = os.environ.get("MCP_SERVER_NAME", "mongodb-semantic-search")
     mcp_host: str = os.environ.get("MCP_SERVER_HOST", "127.0.0.1")
-    mcp_port: int = int(os.environ.get("MCP_SERVER_PORT", "8000"))
+    mcp_port: int = int(os.environ.get("MCP_SERVER_PORT", "8001"))
     mcp_transport: str = os.environ.get("MCP_TRANSPORT", "stdio")
     mcp_url: Optional[str] = os.environ.get("MCP_SERVER_URL", None)
     # Search settings

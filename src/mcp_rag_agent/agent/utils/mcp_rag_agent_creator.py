@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from typing import Any, List, Optional
 
 from langchain.agents import create_agent
@@ -33,7 +34,9 @@ def get_mcp_connections(cfg: Config) -> dict:
         }
     return {
         cfg.mcp_name: {
-            "command": "python",
+            # Reuse the interpreter running the API so Windows venvs do not
+            # depend on a global `python` command being on PATH.
+            "command": sys.executable,
             "args": ["-m", "mcp_rag_agent.mcp_server.server"],
             "transport": "stdio",
         }

@@ -20,7 +20,7 @@ from mcp_rag_agent.agent.models import (
     UpdateTicketToolInput,
     UpdateTicketToolOutput,
 )
-from mcp_rag_agent.core.config import Config, config
+from mcp_rag_agent.core.config import ConfigurationError, Config, config
 from mcp_rag_agent.core.log_setup import setup_logging
 from mcp_rag_agent.embeddings.embedding_generator import EmbeddingGenerator
 from mcp_rag_agent.embeddings.hybrid_search import HybridSearch
@@ -91,6 +91,22 @@ def get_mongo_client(cfg: Optional[Config] = None) -> MongoDBClient:
         )
         _mongo_client.connect()
     return _mongo_client
+
+
+def _get_optional_mongo_client(cfg: Optional[Config] = None) -> Optional[MongoDBClient]:
+    """Return the shared MongoDB client, or None for the documented local fallback.
+
+    Missing MongoDB configuration is an expected local-development mode for the IT
+    support stores. A configured-but-unreachable database is not treated as a local
+    fallback so production failures remain visible to callers.
+    """
+    try:
+        return get_mongo_client(cfg)
+    except ConfigurationError as exc:
+        logger.warning(
+            "MongoDB is not configured; using seeded in-memory IT stores: %s", exc
+        )
+        return None
 
 
 def get_hybrid_search(cfg: Optional[Config] = None) -> HybridSearch:
@@ -187,7 +203,7 @@ def get_user_service(client: Optional[MongoDBClient] = None) -> Any:
         from mcp_rag_agent.it_support.users.service import UserService
         from mcp_rag_agent.it_support.users.store import UserStore
 
-        mongo = client or get_mongo_client()
+        mongo = client or _get_optional_mongo_client()
         _user_service = UserService(UserStore(mongo))
     return _user_service
 
@@ -205,7 +221,7 @@ def get_device_service(client: Optional[MongoDBClient] = None) -> Any:
         from mcp_rag_agent.it_support.devices.service import DeviceService
         from mcp_rag_agent.it_support.devices.store import DeviceStore
 
-        mongo = client or get_mongo_client()
+        mongo = client or _get_optional_mongo_client()
         _device_service = DeviceService(DeviceStore(mongo))
     return _device_service
 
@@ -223,7 +239,7 @@ def get_incident_service(client: Optional[MongoDBClient] = None) -> Any:
         from mcp_rag_agent.it_support.incidents.service import IncidentService
         from mcp_rag_agent.it_support.incidents.store import IncidentStore
 
-        mongo = client or get_mongo_client()
+        mongo = client or _get_optional_mongo_client()
         _incident_service = IncidentService(IncidentStore(mongo))
     return _incident_service
 
@@ -241,7 +257,7 @@ def get_service_status_checker(client: Optional[MongoDBClient] = None) -> Any:
         from mcp_rag_agent.it_support.services.service import ServiceStatusChecker
         from mcp_rag_agent.it_support.services.store import ServiceStatusStore
 
-        mongo = client or get_mongo_client()
+        mongo = client or _get_optional_mongo_client()
         store = ServiceStatusStore(mongo)
         incidents = get_incident_service(mongo)
         _service_status_checker = ServiceStatusChecker(
@@ -263,7 +279,7 @@ def get_ticket_service(client: Optional[MongoDBClient] = None) -> Any:
         from mcp_rag_agent.it_support.tickets.service import TicketService
         from mcp_rag_agent.it_support.tickets.store import TicketStore
 
-        mongo = client or get_mongo_client()
+        mongo = client or _get_optional_mongo_client()
         _ticket_service = TicketService(TicketStore(mongo))
     return _ticket_service
 
@@ -296,7 +312,7 @@ def get_approval_service(client: Optional[MongoDBClient] = None) -> Any:
     if _approval_service is None:
         from mcp_rag_agent.security.approval import ApprovalService, ApprovalStore
 
-        mongo = client or get_mongo_client()
+        mongo = client or _get_optional_mongo_client()
         _approval_service = ApprovalService(ApprovalStore(mongo))
     return _approval_service
 
@@ -313,8 +329,15 @@ def get_audit_service(client: Optional[MongoDBClient] = None) -> Any:
     if _audit_service is None:
         from mcp_rag_agent.security.audit import AuditService, AuditStore
 
-        mongo = client or get_mongo_client()
-        _audit_service = AuditService(AuditStore(mongo))
+        mongo = client or _get_optional_mongo_client()
+        initial_records = None
+        if mongo is None:
+            from mcp_rag_agent.security.audit import _get_default_seed_audits
+
+            initial_records = _get_default_seed_audits()
+        _audit_service = AuditService(
+            AuditStore(mongo, initial_records=initial_records)
+        )
     return _audit_service
 
 

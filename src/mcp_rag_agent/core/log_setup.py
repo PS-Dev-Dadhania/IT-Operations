@@ -148,7 +148,14 @@ def setup_logging(
     # Clear existing handlers to prevent duplicate lines
     root_logger.handlers.clear()
 
-    handler = logging.StreamHandler(sys.stdout)
+    # MCP stdio is a JSON-RPC protocol on stdout; application logs must stay on
+    # stderr or they corrupt the client/server message stream.
+    log_stream = (
+        sys.stderr
+        if os.environ.get("MCP_STDIO_SERVER", "").lower() == "1"
+        else sys.stdout
+    )
+    handler = logging.StreamHandler(log_stream)
     handler.setLevel(level)
 
     # Attach filters

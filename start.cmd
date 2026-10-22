@@ -1,7 +1,31 @@
 @echo off
-title IT Operations & Support Copilot - Local Launcher
+setlocal EnableExtensions
+cd /d "%~dp0"
+set "PYTHONPATH=%CD%\src;%PYTHONPATH%"
+set "PYTHON_EXE="
+set "PYTHON_ARGS="
+
+if exist "%CD%\.venv\Scripts\python.exe" (
+    set "PYTHON_EXE=%CD%\.venv\Scripts\python.exe"
+) else (
+    where py >nul 2>nul
+    if not errorlevel 1 (
+        set "PYTHON_EXE=py"
+        set "PYTHON_ARGS=-3.12"
+    ) else (
+        where python >nul 2>nul
+        if not errorlevel 1 set "PYTHON_EXE=python"
+    )
+)
+
+if not defined PYTHON_EXE (
+    echo ERROR: No Python interpreter found. Create .venv and install requirements first.
+    exit /b 1
+)
+
+title IT Operations ^& Support Copilot - Local Launcher
 echo =========================================================================
-echo Starting IT Operations & Support Copilot (Localhost Mode)
+echo Starting IT Operations ^& Support Copilot (Localhost Mode)
 echo =========================================================================
 
 echo.
@@ -13,9 +37,6 @@ echo.
 start /b cmd /c "timeout /t 2 /nobreak >nul && start http://localhost:8000"
 
 :: Launch ASGI app
-py -3.12 -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
-if %errorlevel% neq 0 (
-    python -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
-)
+"%PYTHON_EXE%" %PYTHON_ARGS% -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
 
 pause

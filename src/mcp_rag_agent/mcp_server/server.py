@@ -1,7 +1,13 @@
 """MCP server for RAG agent with semantic and keyword hybrid search capabilities."""
 
 import logging
+import os
 from typing import Any, Optional
+
+# Keep stdout reserved for MCP JSON-RPC messages when this module is launched as
+# the stdio server subprocess. Imports below configure the application logger.
+if __name__ == "__main__" and os.environ.get("MCP_TRANSPORT", "stdio").lower() == "stdio":
+    os.environ.setdefault("MCP_STDIO_SERVER", "1")
 
 from mcp.server.fastmcp import FastMCP
 
