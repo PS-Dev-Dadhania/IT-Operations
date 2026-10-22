@@ -18,7 +18,7 @@ from mcp_rag_agent.api.middleware import CorrelationIdMiddleware
 from mcp_rag_agent.api.routes import api_router
 from mcp_rag_agent.api.services.chat_service import ChatService
 from mcp_rag_agent.api.services.conversation_service import ConversationService
-from mcp_rag_agent.core.config import Config, config
+from mcp_rag_agent.core.config import ConfigurationError, Config, config
 from mcp_rag_agent.core.log_setup import setup_logging
 from mcp_rag_agent.observability import configure_langsmith_environment
 
@@ -136,6 +136,24 @@ def create_app(
                 "error": "HTTP_ERROR",
                 "message": exc.detail,
                 "status_code": exc.status_code,
+                "request_id": req_id,
+            },
+        )
+
+    @app.exception_handler(ConfigurationError)
+    async def configuration_exception_handler(
+        request: Request, exc: ConfigurationError
+    ) -> JSONResponse:
+        """Expose actionable setup errors without leaking credentials or tracebacks."""
+        req_id = getattr(request.state, "request_id", None)
+        logger.warning(
+            f"[API:CONFIGURATION_ERROR] (request_id={req_id}): {exc}"
+        )
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "error": "CONFIGURATION_ERROR",
+                "message": str(exc),
                 "request_id": req_id,
             },
         )

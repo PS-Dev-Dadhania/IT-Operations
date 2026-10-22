@@ -17,6 +17,7 @@ from mcp_rag_agent.api import create_app
 from mcp_rag_agent.api.services.chat_service import ChatService
 from mcp_rag_agent.api.services.conversation_service import ConversationService
 from mcp_rag_agent.core.config import Config
+from mcp_rag_agent.core.config import ConfigurationError
 from mcp_rag_agent.guardrails.models import DecisionCategory
 
 
@@ -327,6 +328,27 @@ def test_chat_internal_error_handling(mock_runner):
         data = response.json()
         assert data["error"] == "INTERNAL_SERVER_ERROR"
         assert "request_id" in data
+
+
+def test_chat_configuration_error_is_actionable(mock_runner):
+    """Configuration failures must identify the missing prerequisite to the caller."""
+    mock_runner.run = AsyncMock(
+        side_effect=ConfigurationError(
+            "Missing required MongoDB configuration: MONGODB_ATLAS_CLUSTER_URI."
+        )
+    )
+    app = create_app(runner=mock_runner)
+
+    with TestClient(app, raise_server_exceptions=False) as config_client:
+        response = config_client.post(
+            "/api/v1/chat", json={"message": "Create a VPN support ticket."}
+        )
+
+    assert response.status_code == 503
+    data = response.json()
+    assert data["error"] == "CONFIGURATION_ERROR"
+    assert "MONGODB_ATLAS_CLUSTER_URI" in data["message"]
+    assert "request_id" in data
 
 
 # ==============================================================================
