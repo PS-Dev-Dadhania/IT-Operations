@@ -273,6 +273,17 @@ def test_chat_endpoint_success(client, mock_runner):
     assert call_kwargs["user_id"] == "user_test_99"
 
 
+def test_chat_endpoint_accepts_frontend_query_field(client, mock_runner):
+    """Verify the UI's ``query`` payload reaches the agent as ``message``."""
+    response = client.post(
+        "/api/v1/chat",
+        json={"query": "How do I reset my VPN password?", "user_id": "user_emp_demo"},
+    )
+
+    assert response.status_code == 200
+    assert mock_runner.run.call_args.kwargs["query"] == "How do I reset my VPN password?"
+
+
 def test_chat_custom_request_id_header(client):
     """Verify client-supplied X-Request-ID is honored across headers and response."""
     custom_req_id = "req_custom_trace_98765"

@@ -8,6 +8,7 @@ from typing import Any, AsyncGenerator, Optional
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -116,7 +117,10 @@ def create_app(
             content={
                 "error": "VALIDATION_ERROR",
                 "message": "Invalid request parameters.",
-                "details": exc.errors(),
+                # Pydantic v2 may include exception instances in ``ctx`` for
+                # model-validator errors. Encode them before constructing the
+                # response so invalid requests remain a JSON 422, not a 500.
+                "details": jsonable_encoder(exc.errors()),
                 "request_id": req_id,
             },
         )

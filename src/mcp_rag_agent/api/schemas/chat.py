@@ -2,18 +2,25 @@
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ChatRequest(BaseModel):
     """Request model for conversational chat endpoint."""
 
-    message: str = Field(
-        ...,
+    message: Optional[str] = Field(
+        default=None,
         min_length=1,
         max_length=4000,
         description="The user's question or instruction regarding Company XYZ policies.",
         examples=["In the UK, how many days of annual leave do employees receive?"],
+    )
+    # 'query' is the field name used by the frontend JS (app.js). Accept both.
+    query: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=4000,
+        description="Alias for 'message'; accepted from frontend clients.",
     )
     thread_id: Optional[str] = Field(
         default=None,
@@ -25,6 +32,15 @@ class ChatRequest(BaseModel):
         description="Optional user identifier for session tracking.",
         examples=["user_emp_42"],
     )
+
+    @model_validator(mode="after")
+    def resolve_message_field(self) -> "ChatRequest":
+        """Allow 'query' as an alias for 'message' (frontend compatibility)."""
+        if not self.message and self.query:
+            self.message = self.query
+        if not self.message:
+            raise ValueError("Either 'message' or 'query' must be provided and non-empty.")
+        return self
 
 
 class ChatResponseMetadata(BaseModel):
