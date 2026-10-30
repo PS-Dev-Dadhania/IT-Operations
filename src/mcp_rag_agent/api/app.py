@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from mcp_rag_agent.agent.create_agent import create_rag_agent_instance
@@ -190,12 +190,21 @@ def create_app(
             "ready": "/api/v1/ready",
         }
 
-    # 5. Register Versioned Routes
-    app.include_router(api_router)
-
-    # 6. Mount Static UI Directory
+    # 5. Static directory & Favicon
     static_dir = Path(__file__).resolve().parent / "static"
     static_dir.mkdir(parents=True, exist_ok=True)
+    favicon_path = static_dir / "favicon.ico"
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def favicon():
+        if favicon_path.exists():
+            return FileResponse(str(favicon_path), media_type="image/x-icon")
+        return JSONResponse(status_code=204, content=None)
+
+    # 6. Register Versioned Routes
+    app.include_router(api_router)
+
+    # 7. Mount Static UI Directory
     app.mount("/ui", StaticFiles(directory=str(static_dir), html=True), name="ui")
 
     return app

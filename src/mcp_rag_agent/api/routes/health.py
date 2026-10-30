@@ -5,7 +5,11 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Response, status
-from pymongo import MongoClient
+try:
+    from pymongo import MongoClient
+except ImportError:
+    class MongoClient:  # type: ignore
+        pass
 
 from mcp_rag_agent.api.dependencies import get_config
 from mcp_rag_agent.api.schemas.health import (
@@ -14,6 +18,7 @@ from mcp_rag_agent.api.schemas.health import (
     ReadinessResponse,
 )
 from mcp_rag_agent.core.config import Config
+from mcp_rag_agent.database.client import LocalDatabaseClient
 
 logger = logging.getLogger("HealthRoutes")
 
@@ -37,21 +42,28 @@ async def readiness_check(
     cfg: Config = Depends(get_config),
 ) -> ReadinessResponse:
     """Deep readiness probe verifying database connectivity and model configuration."""
-    # 1. MongoDB check
+    # 1. Database check (supports local SQLite database or MongoDB)
     db_status = "disconnected"
     if cfg.db_url and cfg.db_name:
         try:
 
-            def _ping_mongo() -> bool:
-                client = MongoClient(
-                    cfg.db_url,
-                    serverSelectionTimeoutMS=1500,
-                    connectTimeoutMS=1500,
-                )
-                client.admin.command("ping")
-                return True
+            def _ping_database() -> bool:
+                if cfg.db_url.startswith("mongodb://") or cfg.db_url.startswith("mongodb+srv://"):
+                    client = MongoClient(
+                        cfg.db_url,
+                        serverSelectionTimeoutMS=1500,
+                        connectTimeoutMS=1500,
+                    )
+                    client.admin.command("ping")
+                    return True
+                else:
+                    db_path = getattr(cfg, "local_db_path", "./data/local_storage.db")
+                    if cfg.db_url and not cfg.db_url.startswith("sqlite://"):
+                        db_path = cfg.db_url
+                    client = LocalDatabaseClient(database_path=db_path)
+                    return client.ping()
 
-            is_connected = await asyncio.to_thread(_ping_mongo)
+            is_connected = await asyncio.to_thread(_ping_database)
             if is_connected:
                 db_status = "connected"
         except Exception as e:
@@ -61,9 +73,7 @@ async def readiness_check(
         db_status = "disconnected"
 
     # 2. Model configuration check
-    has_model_key = bool(
-        getattr(cfg, "model_api_key", None) or getattr(cfg, "google_api_key", None)
-    )
+    has_model_key = bool(getattr(cfg, "model_api_key", None))
     model_status = "configured" if has_model_key else "unconfigured"
 
     # 3. Session memory check

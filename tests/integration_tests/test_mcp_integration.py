@@ -17,15 +17,9 @@ pytestmark = pytest.mark.integration
 
 
 def is_live_openai_configured() -> bool:
-    """Check if a valid non-dummy OpenAI API key is present."""
-    key = os.environ.get("OPENAI_API_KEY", "")
-    return bool(
-        key
-        and not key.startswith("sk-proj-test")
-        and not key.startswith("sk-mock")
-        and key != "your_secret_key"
-        and key != "your_openai_api_key_here"
-    )
+    """Check if live or local retrieval environment is available."""
+    key = os.environ.get("OPENAI_API_KEY", "") or os.environ.get("GEMINI_API_KEY", "")
+    return bool(key) or Path("./data/local_storage.db").exists()
 
 
 class TestMCPIntegration:

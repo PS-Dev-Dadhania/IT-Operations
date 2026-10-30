@@ -43,8 +43,12 @@ class Config(BaseSettings):
         os.environ.get("LANGSMITH_HIDE_OUTPUTS", "false").lower() == "true"
     )
     # Database settings
-    db_url: str = os.environ.get("MONGODB_ATLAS_CLUSTER_URI", "")
-    db_name: str = os.environ.get("MONGODB_ATLAS_DB_NAME", "")
+    local_db_path: str = os.environ.get("LOCAL_DB_PATH", "./data/local_storage.db")
+    db_url: str = os.environ.get(
+        "MONGODB_ATLAS_CLUSTER_URI",
+        os.environ.get("LOCAL_DB_PATH", "./data/local_storage.db"),
+    )
+    db_name: str = os.environ.get("MONGODB_ATLAS_DB_NAME", "local_storage")
     db_users_collection: str = os.environ.get("MONGODB_USERS_COLLECTION", "users")
     db_conversations_collection: str = os.environ.get(
         "MONGODB_CONVERSATIONS_COLLECTION", "conversations"
@@ -77,18 +81,39 @@ class Config(BaseSettings):
         else None
     )
     # Model settings
+    model_provider: str = os.environ.get("MODEL_PROVIDER", "gemini")
     model_api_key: str = os.environ.get("OPENAI_API_KEY", "")
+    google_api_key: str = os.environ.get(
+        "GOOGLE_API_KEY", os.environ.get("GEMINI_API_KEY", "")
+    )
+    openai_base_url: Optional[str] = os.environ.get("OPENAI_BASE_URL", None)
     embedding_model: str = os.environ.get(
-        "EMBEDDING_MODEL_NAME", "text-embedding-3-small"
+        "EMBEDDING_MODEL_NAME", "gemini-embedding-001"
     )
     embedding_dimension: int = int(os.environ.get("EMBEDDING_DIMENSION", "256"))
-    text_model: str = os.environ.get("TEXT_MODEL_NAME", "gpt-4.1")
+    text_model: str = os.environ.get("TEXT_MODEL_NAME", "gemini-3.8-flash")
     text_generation_kwargs: dict = {
         "max_tokens": 2048,
         "temperature": 0,
         "top_p": 0.1,
     }
-    evaluation_model: str = os.environ.get("EVALUATION_MODEL_NAME", "gpt-4o-mini")
+    evaluation_model: str = os.environ.get("EVALUATION_MODEL_NAME", "gemini-2.5-flash")
+
+    @property
+    def effective_api_key(self) -> str:
+        """Returns the active API key for LLM and embeddings."""
+        if self.model_provider.lower() in ("gemini", "google"):
+            return self.google_api_key or self.model_api_key
+        return self.model_api_key or self.google_api_key
+
+    @property
+    def effective_base_url(self) -> Optional[str]:
+        """Returns the base URL for LLM and embeddings."""
+        if self.openai_base_url:
+            return self.openai_base_url
+        if self.model_provider.lower() in ("gemini", "google"):
+            return "https://generativelanguage.googleapis.com/v1beta/openai/"
+        return None
     # MCP server settings
     mcp_name: str = os.environ.get("MCP_SERVER_NAME", "mongodb-semantic-search")
     mcp_host: str = os.environ.get("MCP_SERVER_HOST", "127.0.0.1")

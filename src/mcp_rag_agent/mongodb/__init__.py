@@ -1,5 +1,6 @@
-"""MongoDB client and semantic search modules."""
+"""Backward compatibility wrapper mapping MongoDBClient to LocalDatabaseClient."""
 
-from .client import MongoDBClient
+from mcp_rag_agent.database.client import LocalDatabaseClient
+from mcp_rag_agent.mongodb.client import MongoDBClient
 
-__all__ = ["MongoDBClient"]
+__all__ = ["MongoDBClient", "LocalDatabaseClient"]

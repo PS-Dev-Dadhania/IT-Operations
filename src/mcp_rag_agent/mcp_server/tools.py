@@ -394,6 +394,7 @@ async def search_policy_documents_typed(
             )
             return SearchDocumentsOutput(
                 status="error",
+                query=input_data.query,
                 chunks=[],
                 total_found=0,
                 error_message=auth.message,
@@ -483,6 +484,7 @@ async def search_policy_documents_typed(
 
         return SearchDocumentsOutput(
             status=status,
+            query=input_data.query,
             chunks=chunks_out,
             total_found=len(chunks_out),
             error_message=error_msg,
@@ -506,6 +508,7 @@ async def search_policy_documents_typed(
             )
         return SearchDocumentsOutput(
             status="error",
+            query=input_data.query,
             chunks=[],
             total_found=0,
             error_message=f"Retrieval system failure: {safe_err}",

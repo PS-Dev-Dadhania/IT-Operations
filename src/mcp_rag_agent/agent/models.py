@@ -43,6 +43,9 @@ class SearchDocumentsOutput(BaseModel):
     status: str = Field(
         ..., description="Execution status: 'success', 'empty', or 'error'"
     )
+    query: Optional[str] = Field(
+        None, description="The query string that generated these results"
+    )
     chunks: list[RetrievedChunkOutput] = Field(
         default_factory=list, description="Retrieved document chunks"
     )

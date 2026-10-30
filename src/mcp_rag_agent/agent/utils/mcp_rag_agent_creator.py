@@ -101,12 +101,17 @@ async def create_mcp_rag_agent(
     full_system_prompt = system_prompt + "\n" + grounded_prompt
     system_prompt_template = SystemMessage(content=full_system_prompt)
 
-    # LLM
-    model = ChatOpenAI(
-        api_key=config.model_api_key,
-        model=config.text_model,
+    # LLM (supports OpenAI or Google Gemini via OpenAI-compatible endpoint)
+    llm_kwargs = {
+        "api_key": getattr(config, "effective_api_key", config.model_api_key) or "missing-key",
+        "model": config.text_model,
         **config.text_generation_kwargs,
-    )
+    }
+    base_url = getattr(config, "effective_base_url", None)
+    if base_url:
+        llm_kwargs["base_url"] = base_url
+
+    model = ChatOpenAI(**llm_kwargs)
 
     # Prebuilt agent
     agent = create_agent(

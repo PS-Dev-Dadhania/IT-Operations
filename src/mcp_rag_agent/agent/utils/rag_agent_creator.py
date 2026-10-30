@@ -29,12 +29,17 @@ async def create_rag_agent(
     # System message
     system_prompt_template = SystemMessage(content=system_prompt)
 
-    # LLM
-    model = ChatOpenAI(
-        api_key=config.model_api_key,
-        model=config.text_model,
+    # LLM (supports OpenAI or Google Gemini via OpenAI-compatible endpoint)
+    llm_kwargs = {
+        "api_key": getattr(config, "effective_api_key", config.model_api_key) or "missing-key",
+        "model": config.text_model,
         **config.text_generation_kwargs,
-    )
+    }
+    base_url = getattr(config, "effective_base_url", None)
+    if base_url:
+        llm_kwargs["base_url"] = base_url
+
+    model = ChatOpenAI(**llm_kwargs)
 
     # Prebuilt agent with checkpointer
     agent = create_agent(

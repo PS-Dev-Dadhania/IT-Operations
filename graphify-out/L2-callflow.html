@@ -1,0 +1,2662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L2 — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>L2 — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 2674 nodes, 6487 edges, 108 communities. Commit: d011fe7</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#build-graph">Graph Build</a>
+    <a href="#analysis-clustering">Analysis &amp; Clustering</a>
+    <a href="#outputs-docs">Outputs &amp; Docs</a>
+    <a href="#cli-skills">CLI &amp; Skill Installers</a>
+    <a href="#serve-api">Serving API</a>
+    <a href="#security-global">Security &amp; Global Graph</a>
+    <a href="#tests-fixtures">Tests &amp; Fixtures</a>
+    <a href="#to-dataframe">.to_dataframe</a>
+    <a href="#setup-py">setup.py</a>
+    <a href="#evaluation-init-py">evaluation/__init__.py</a>
+    <a href="#start-sh">start.sh</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    BUILD_GRAPH_321CBB04("Graph Build<br/><small>19 nodes</small>")
+    class BUILD_GRAPH_321CBB04 module;
+    ANALYSIS_CLUSTERING_C79796DA("Analysis &amp; Clustering<br/><small>13 nodes</small>")
+    class ANALYSIS_CLUSTERING_C79796DA module;
+    OUTPUTS_DOCS_ED82387C("Outputs &amp; Docs<br/><small>11 nodes</small>")
+    class OUTPUTS_DOCS_ED82387C module;
+    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>928 nodes</small>")
+    class CLI_SKILLS_9964CBB8 module;
+    SERVE_API_35EC8E86("Serving API<br/><small>123 nodes</small>")
+    class SERVE_API_35EC8E86 module;
+    SECURITY_GLOBAL_5B9C6A04("Security &amp; Global Graph<br/><small>82 nodes</small>")
+    class SECURITY_GLOBAL_5B9C6A04 module;
+    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>1487 nodes</small>")
+    class TESTS_FIXTURES_B84B1DCC module;
+    TO_DATAFRAME_94438011(".to_dataframe<br/><small>4 nodes</small>")
+    class TO_DATAFRAME_94438011 module;
+    SETUP_PY_800BE90C("setup.py<br/><small>3 nodes</small>")
+    class SETUP_PY_800BE90C module;
+    EVALUATION_INIT_PY_02620C89("evaluation/__init__.py<br/><small>2 nodes</small>")
+    class EVALUATION_INIT_PY_02620C89 module;
+    START_SH_C6893C03("start.sh<br/><small>2 nodes</small>")
+    class START_SH_C6893C03 module;
+    TESTS_FIXTURES_B84B1DCC -->|uses x428| CLI_SKILLS_9964CBB8
+    CLI_SKILLS_9964CBB8 -->|imports x368| TESTS_FIXTURES_B84B1DCC
+    SERVE_API_35EC8E86 -->|imports x52| CLI_SKILLS_9964CBB8
+    CLI_SKILLS_9964CBB8 -->|imports x51| SERVE_API_35EC8E86
+    TESTS_FIXTURES_B84B1DCC -->|uses x42| SECURITY_GLOBAL_5B9C6A04
+    SECURITY_GLOBAL_5B9C6A04 -->|uses x32| TESTS_FIXTURES_B84B1DCC
+    SERVE_API_35EC8E86 -->|uses x28| TESTS_FIXTURES_B84B1DCC
+    CLI_SKILLS_9964CBB8 -->|imports x24| SECURITY_GLOBAL_5B9C6A04
+    TESTS_FIXTURES_B84B1DCC -->|imports x20| SERVE_API_35EC8E86
+    SECURITY_GLOBAL_5B9C6A04 -->|imports x15| CLI_SKILLS_9964CBB8
+    CLI_SKILLS_9964CBB8 -->|imports x9| BUILD_GRAPH_321CBB04
+    OUTPUTS_DOCS_ED82387C -->|imports x9| TESTS_FIXTURES_B84B1DCC
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Graph Build</td><td>19</td><td><code>60</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>13</td><td><code>72</code></td></tr><tr><td>Outputs &amp; Docs</td><td>11</td><td><code>84</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>928</td><td><code>0, 1, 2, 7, 18, 20, 21, 22, 27, 29, 31, 32, 36, 37, 46, 48, 59, 62, 64, 68, 69, 70, 75, 76, 77, 81, 82, 93, 94, 95, 100</code></td></tr><tr><td>Serving API</td><td>123</td><td><code>19, 42, 49, 51, 79, 97</code></td></tr><tr><td>Security &amp; Global Graph</td><td>82</td><td><code>9, 24</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>1487</td><td><code>3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16, 17, 23, 25, 26, 28, 30, 33, 34, 35, 38, 39, 40, 41, 43, 44, 45, 47, 50, 52, 53, 54, 55, 56, 57, 58, 61, 63, 65, 66, 67, 71, 73, 74, 78, 80, 83, 85, 86, 87, 88, 89, 90, 91, 92, 96, 103, 104, 105, 106, 107</code></td></tr><tr><td>.to_dataframe</td><td>4</td><td><code>98</code></td></tr><tr><td>setup.py</td><td>3</td><td><code>99</code></td></tr><tr><td>evaluation/__init__.py</td><td>2</td><td><code>101</code></td></tr><tr><td>start.sh</td><td>2</td><td><code>102</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">setup.py -&gt; CLI &amp; Skill Installers -&gt; Tests &amp; Fixtures -&gt; Security &amp; Global Graph -&gt; Graph Build -&gt; Analysis &amp; Clustering -&gt; Serving API</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>2674 nodes · 6487 edges · 108 communities (71 shown, 37 thin omitted)</li>
+      <li>Extraction: 82% EXTRACTED · 18% INFERRED · 0% AMBIGUOUS · INFERRED: 1145 edges (avg confidence: 0.91)</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `Config` - 80 edges</li>
+      <li>2. `TicketRecord` - 79 edges</li>
+      <li>3. `MongoDBClient` - 72 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Graph Build ====== -->
+<h2 id="build-graph">2. Graph Build</h2>
+<p>Graph Build groups implementation around mcp, rag, agent, support, mostly in it_support/runbooks/graph.py, it_support/runbooks/registry.py. This section covers 19 nodes and 21 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Graph Build (19 nodes, 21 edges)
+    subgraph build_graph_it_support_runbooks_graph_py_314f959e["it_support/runbooks/graph.py"]
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_03f1ab78("escalate_node()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_5cba548a("evaluate_node()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_fbf5ffca("resolve_node()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_80d2cbc5("step_node()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c("_get_runbook_from_state()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_runb_b438ca6f("RunbookGraphState<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_e6ee7150("advance_step_node()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_e3f8b56a("branch_router()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_3ba7d8d5("create_runbook_subgraph()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_crea_6a5f43c2("entry_router()<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_rati_7f345412("Build and compile the LangGraph runbook...<br/><small>it_support/runbooks/graph.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_graph_rati_7e411456("Execution state container passed throug...<br/><small>it_support/runbooks/graph.py</small>")
+    end
+    subgraph build_graph_External_generated_653891f5["External / generated"]
+        src_mcp_rag_agent_it_support_runbooks_graph_py_a_9724efad("Any")
+        src_mcp_rag_agent_it_support_runbooks_registry_p_31a6cf8e("KeyError")
+        typeddict_d514840f("TypedDict")
+    end
+    subgraph build_graph_it_support_runbooks_registry_py_f173a3ba["it_support/runbooks/registry.py"]
+        src_mcp_rag_agent_it_support_runbooks_registry_r_5a35bd7d("get()<br/><small>it_support/runbooks/registry.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_registry_r_686823c5("RunbookNotFoundError<br/><small>it_support/runbooks/registry.py</small>")
+        src_mcp_rag_agent_it_support_runbooks_registry_r_14990227("Raised when a requested runbook or vers...<br/><small>it_support/runbooks/registry.py</small>")
+    end
+    src_mcp_rag_agent_it_support_runbooks_graph_crea_03f1ab78 -->|calls| src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c
+    src_mcp_rag_agent_it_support_runbooks_graph_crea_5cba548a -->|calls| src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c
+    src_mcp_rag_agent_it_support_runbooks_graph_crea_fbf5ffca -->|calls| src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c
+    src_mcp_rag_agent_it_support_runbooks_graph_crea_80d2cbc5 -->|calls| src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c
+    src_mcp_rag_agent_it_support_runbooks_registry_r_5a35bd7d -->|calls| src_mcp_rag_agent_it_support_runbooks_registry_r_686823c5
+    src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c -->|calls| src_mcp_rag_agent_it_support_runbooks_registry_r_5a35bd7d
+    %% Omitted for readability: 1 nodes, 0 edges
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_03f1ab78 function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_5cba548a function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_fbf5ffca function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_80d2cbc5 function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_get_736a0a4c function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_runb_b438ca6f klass;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_e6ee7150 function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_e3f8b56a api;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_3ba7d8d5 function;
+    class src_mcp_rag_agent_it_support_runbooks_graph_crea_6a5f43c2 api;
+    class src_mcp_rag_agent_it_support_runbooks_graph_rati_7f345412 concept;
+    class src_mcp_rag_agent_it_support_runbooks_graph_rati_7e411456 concept;
+    class src_mcp_rag_agent_it_support_runbooks_graph_py_a_9724efad klass;
+    class src_mcp_rag_agent_it_support_runbooks_registry_p_31a6cf8e klass;
+    class typeddict_d514840f klass;
+    class src_mcp_rag_agent_it_support_runbooks_registry_r_5a35bd7d function;
+    class src_mcp_rag_agent_it_support_runbooks_registry_r_686823c5 klass;
+    class src_mcp_rag_agent_it_support_runbooks_registry_r_14990227 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>RunbookGraphState</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">it_support/runbooks/__init__.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Builds dependency relationships and graph data.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>RunbookNotFoundError</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">it_support/runbooks/__init__.py</small><br><code>executor.py</code><br><small style="color:var(--muted)">it_support/runbooks/executor.py</small><br><code>get()</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>RunbookNotFoundError node in it_support/runbooks/registry.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">it_support/runbooks/executor.py</small><br><code>__init__.py</code><br><small style="color:var(--muted)">it_support/runbooks/__init__.py</small><br><code>executor.py</code><br><small style="color:var(--muted)">it_support/runbooks/executor.py</small></td>
+  <td><code>advance_step_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br><code>branch_router()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br><code>entry_router()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br>+8 more</td>
+  <td>Builds dependency relationships and graph data.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>advance_step_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>advance_step_node() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>branch_router()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>branch_router() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>entry_router()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>entry_router() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>escalate_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><code>_get_runbook_from_state()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>escalate_node() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>evaluate_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><code>_get_runbook_from_state()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>evaluate_node() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>resolve_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><code>_get_runbook_from_state()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>resolve_node() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>step_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>create_runbook_subgraph()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><code>_get_runbook_from_state()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td>step_node() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>_get_runbook_from_state()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>escalate_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br><code>evaluate_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br><code>resolve_node()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br>+1 more</td>
+  <td><code>get()</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small><br><code>Runbook</code><br><small style="color:var(--muted)">it_support/runbooks/models.py</small><br><code>RunbookRegistry</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td>_get_runbook_from_state() node in it_support/runbooks/graph.py.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>.get()</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>_get_runbook_from_state()</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small><br><code>RunbookRegistry</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td><code>RunbookNotFoundError</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td>.get() node in it_support/runbooks/registry.py.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Any</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Any node in project.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>KeyError</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>KeyError node in project.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>TypedDict</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TypedDict node in project.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Execution state container passed through the LangGraph runbook subgraph.</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Execution state container passed through the LangGraph runbook subgraph..</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Build and compile the LangGraph runbook state machine. Target Workflow: START ↓…</code><br><small style="color:var(--muted)">it_support/runbooks/graph.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Build and compile the LangGraph runbook state machine. Target Workflow: START ↓….</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Raised when a requested runbook or version does not exist.</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Raised when a requested runbook or version does not exist..</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Retrieve a runbook by ID or canonical code, resolving to active version.</code><br><small style="color:var(--muted)">it_support/runbooks/registry.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Retrieve a runbook by ID or canonical code, resolving to active version..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>it_support/runbooks/graph.py</code></td><td>12 nodes</td></tr>
+<tr><td><code>it_support/runbooks/registry.py</code></td><td>4 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: indirect call x7, calls x6, explains x4, inherits x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Analysis & Clustering ====== -->
+<h2 id="analysis-clustering">3. Analysis &amp; Clustering</h2>
+<p>Analysis &amp; Clustering groups implementation around benchmark, retrievalpy, scripts, retrieval, mostly in scripts/benchmark_retrieval.py. This section covers 13 nodes and 16 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Analysis &amp; Clustering (13 nodes, 16 edges)
+    subgraph analysis_clustering_scripts_benchmark_retrieval_32d7978d["scripts/benchmark_retrieval.py"]
+        scripts_benchmark_retrieval_main_780f4c3a("main()<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_b8537026("benchmark_retrieval.py")
+        scripts_benchmark_retrieval_create_mock_retrieva_2cbd81e1("mock retrieval environment()<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_run_baseline_search_f2953bee("run_baseline_search()<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_run_advanced_search_05bc4f1c("run_advanced_search()<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_main_calc_stats_adfa9230("calc_stats()<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_rationale_14_a0338d14("Create a high-fidelity in-memory mock e...<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_rationale_1_e832ff15("Retrieval latency benchmarking script c...<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_rationale_84_1cab2880("Run advanced retrieval pipeline with ov...<br/><small>scripts/benchmark_retrieval.py</small>")
+        scripts_benchmark_retrieval_rationale_51_b14c5bcb("Simulate baseline retrieval without pre...<br/><small>scripts/benchmark_retrieval.py</small>")
+    end
+    subgraph analysis_clustering_External_generated_9ee0240b["External / generated"]
+        statistics_3d18b2ea("statistics")
+        mcp_rag_agent_retrieval_reranker_6f2db690("agent retrieval reranker")
+        mcp_rag_agent_retrieval_pipeline_5e5ef4f2("agent retrieval pipeline")
+    end
+    scripts_benchmark_retrieval_main_780f4c3a -->|calls| scripts_benchmark_retrieval_create_mock_retrieva_2cbd81e1
+    scripts_benchmark_retrieval_main_780f4c3a -->|calls| scripts_benchmark_retrieval_run_baseline_search_f2953bee
+    scripts_benchmark_retrieval_main_780f4c3a -->|calls| scripts_benchmark_retrieval_run_advanced_search_05bc4f1c
+    scripts_benchmark_retrieval_main_780f4c3a -->|calls| statistics_3d18b2ea
+    scripts_benchmark_retrieval_b8537026 -->|imports| statistics_3d18b2ea
+    scripts_benchmark_retrieval_b8537026 -->|imports| mcp_rag_agent_retrieval_reranker_6f2db690
+    scripts_benchmark_retrieval_b8537026 -->|imports| mcp_rag_agent_retrieval_pipeline_5e5ef4f2
+    class scripts_benchmark_retrieval_main_780f4c3a function;
+    class scripts_benchmark_retrieval_b8537026 module;
+    class scripts_benchmark_retrieval_create_mock_retrieva_2cbd81e1 function;
+    class scripts_benchmark_retrieval_run_baseline_search_f2953bee function;
+    class scripts_benchmark_retrieval_run_advanced_search_05bc4f1c function;
+    class scripts_benchmark_retrieval_main_calc_stats_adfa9230 function;
+    class scripts_benchmark_retrieval_rationale_14_a0338d14 concept;
+    class scripts_benchmark_retrieval_rationale_1_e832ff15 concept;
+    class scripts_benchmark_retrieval_rationale_84_1cab2880 concept;
+    class scripts_benchmark_retrieval_rationale_51_b14c5bcb concept;
+    class statistics_3d18b2ea function;
+    class mcp_rag_agent_retrieval_reranker_6f2db690 function;
+    class mcp_rag_agent_retrieval_pipeline_5e5ef4f2 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>create_mock_retrieval_environment()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>create_mock_retrieval_environment() node in scripts/benchmark_retrieval.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>AdvancedRetriever</code><br><small style="color:var(--muted)">mcp_rag_agent/retrieval/pipeline.py</small><br><code>mock retrieval environment()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small><br><code>NoOpReranker</code><br><small style="color:var(--muted)">mcp_rag_agent/retrieval/reranker.py</small><br>+3 more</td>
+  <td>main() node in scripts/benchmark_retrieval.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>calc_stats()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>calc_stats() node in scripts/benchmark_retrieval.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>run_advanced_search()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><code>AdvancedRetriever</code><br><small style="color:var(--muted)">mcp_rag_agent/retrieval/pipeline.py</small></td>
+  <td>run_advanced_search() node in scripts/benchmark_retrieval.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>run_baseline_search()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><code>time</code></td>
+  <td>run_baseline_search() node in scripts/benchmark_retrieval.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>benchmark_retrieval.py</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>agent retrieval pipeline</code><br><code>agent retrieval reranker</code><br><code>asyncio</code><br>+4 more</td>
+  <td>Module file in scripts/benchmark_retrieval.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Retrieval latency benchmarking script comparing baseline vs advanced retrieval.</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Retrieval latency benchmarking script comparing baseline vs advanced retrieval..</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Create a high-fidelity in-memory mock environment for deterministic latency…</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Create a high-fidelity in-memory mock environment for deterministic latency….</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Simulate baseline retrieval without preprocessing, over-fetching, or stage…</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Simulate baseline retrieval without preprocessing, over-fetching, or stage….</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Run advanced retrieval pipeline with over-fetching, RRF fusion, and metrics.</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Run advanced retrieval pipeline with over-fetching, RRF fusion, and metrics..</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>mcp_rag_agent_retrieval_pipeline</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>benchmark_retrieval.py</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small><br><code>test_advanced_retrieval.py</code><br><small style="color:var(--muted)">tests/unit_tests/test_advanced_retrieval.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Supports retrieval-augmented Q&amp;A or streaming chat.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>mcp_rag_agent_retrieval_reranker</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>benchmark_retrieval.py</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small><br><code>test_advanced_retrieval.py</code><br><small style="color:var(--muted)">tests/unit_tests/test_advanced_retrieval.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Supports retrieval-augmented Q&amp;A or streaming chat.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>statistics</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>benchmark_retrieval.py</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small><br><code>main()</code><br><small style="color:var(--muted)">scripts/benchmark_retrieval.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>statistics node in project.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>scripts/benchmark_retrieval.py</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x5, calls x4, explains x4, imports x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. Outputs & Docs ====== -->
+<h2 id="outputs-docs">4. Outputs &amp; Docs</h2>
+<p>Outputs &amp; Docs groups implementation around generate, readme, chartspy, scripts, mostly in scripts/generate_readme_charts.py, evaluation/metrics_evaluator.py. This section covers 11 nodes and 14 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Outputs &amp; Docs (11 nodes, 14 edges)
+    subgraph outputs_docs_scripts_generate_readme_charts_py_31c29742["scripts/generate_readme_charts.py"]
+        scripts_generate_readme_charts_main_5d26f528("main()<br/><small>scripts/generate_readme_charts.py</small>")
+        scripts_generate_readme_charts_69f71e68("generate_readme_charts.py")
+        scripts_generate_readme_charts_load_eval_data_2506a9d2("load_eval_data()<br/><small>scripts/generate_readme_charts.py</small>")
+        scripts_generate_readme_charts_ensure_assets_dir_d1c0827a("ensure_assets_dir()<br/><small>scripts/generate_readme_charts.py</small>")
+        scripts_generate_readme_charts_generate_horizont_300075d1("horizontal bar chart()<br/><small>scripts/generate_readme_charts.py</small>")
+        scripts_generate_readme_charts_rationale_41_5ffde031("Render a modern dark/light compatible S...<br/><small>scripts/generate_readme_charts.py</small>")
+        scripts_generate_readme_charts_rationale_1_efb0ef37("Script to generate professional SVG cha...<br/><small>scripts/generate_readme_charts.py</small>")
+    end
+    subgraph outputs_docs_External_generated_a8e9d6d8["External / generated"]
+        sys_b4c56ee8("sys")
+        scripts_generate_readme_charts_py_path_c71e3d4a("Path")
+    end
+    subgraph outputs_docs_evaluation_metrics_evaluator_py_6763f4ed["evaluation/metrics_evaluator.py"]
+        evaluation_metrics_evaluator_a22e218c("metrics_evaluator.py")
+        evaluation_metrics_evaluator_rationale_1_f6528747("Metrics evaluation module. This module...<br/><small>evaluation/metrics_evaluator.py</small>")
+    end
+    scripts_generate_readme_charts_load_eval_data_2506a9d2 -->|calls| sys_b4c56ee8
+    scripts_generate_readme_charts_main_5d26f528 -->|calls| scripts_generate_readme_charts_ensure_assets_dir_d1c0827a
+    scripts_generate_readme_charts_main_5d26f528 -->|calls| scripts_generate_readme_charts_load_eval_data_2506a9d2
+    scripts_generate_readme_charts_main_5d26f528 -->|calls| scripts_generate_readme_charts_generate_horizont_300075d1
+    evaluation_metrics_evaluator_a22e218c -->|imports| sys_b4c56ee8
+    scripts_generate_readme_charts_69f71e68 -->|imports| sys_b4c56ee8
+    class scripts_generate_readme_charts_main_5d26f528 function;
+    class scripts_generate_readme_charts_69f71e68 module;
+    class scripts_generate_readme_charts_load_eval_data_2506a9d2 function;
+    class scripts_generate_readme_charts_ensure_assets_dir_d1c0827a async;
+    class scripts_generate_readme_charts_generate_horizont_300075d1 function;
+    class scripts_generate_readme_charts_rationale_41_5ffde031 concept;
+    class scripts_generate_readme_charts_rationale_1_efb0ef37 concept;
+    class sys_b4c56ee8 function;
+    class scripts_generate_readme_charts_py_path_c71e3d4a klass;
+    class evaluation_metrics_evaluator_a22e218c module;
+    class evaluation_metrics_evaluator_rationale_1_f6528747 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>ensure_assets_dir()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-async">Async</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>ensure_assets_dir() node in scripts/generate_readme_charts.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>generate_horizontal_bar_chart()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>generate_horizontal_bar_chart() node in scripts/generate_readme_charts.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>load_eval_data()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><code>json</code><br><code>sys</code></td>
+  <td>load_eval_data() node in scripts/generate_readme_charts.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ensure_assets_dir()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small><br><code>horizontal bar chart()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small><br><code>load_eval_data()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td>main() node in scripts/generate_readme_charts.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>metrics_evaluator.py</code><br><small style="color:var(--muted)">evaluation/metrics_evaluator.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>main.py</code><br><small style="color:var(--muted)">evaluation/main.py</small></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">evaluation/metrics/__init__.py</small><br><code>datetime</code><br><code>mcp_rag_agent_core_config</code><br>+5 more</td>
+  <td>Module file in evaluation/metrics_evaluator.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>generate_readme_charts.py</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>json</code><br><code>os</code><br><code>pathlib</code><br>+1 more</td>
+  <td>Module file in scripts/generate_readme_charts.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Path</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Path node in project.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Metrics evaluation module. This module computes RAGAS metrics for already-…</code><br><small style="color:var(--muted)">evaluation/metrics_evaluator.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Metrics evaluation module. This module computes RAGAS metrics for already-….</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Script to generate professional SVG charts directly from actual evaluation…</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Script to generate professional SVG charts directly from actual evaluation….</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Render a modern dark/light compatible SVG horizontal bar chart.</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Render a modern dark/light compatible SVG horizontal bar chart..</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>sys</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>generate_readme_charts.py</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small><br><code>load_eval_data()</code><br><small style="color:var(--muted)">scripts/generate_readme_charts.py</small><br><code>log_setup.py</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small><br>+2 more</td>
+  <td>No direct outbound edge</td>
+  <td>sys node in project.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>scripts/generate_readme_charts.py</code></td><td>7 nodes</td></tr>
+<tr><td><code>evaluation/metrics_evaluator.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x4, contains x4, explains x3, imports x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. CLI & Skill Installers ====== -->
+<h2 id="cli-skills">5. CLI &amp; Skill Installers</h2>
+<p>CLI &amp; Skill Installers groups implementation around agent, mcp, rag, support, mostly in mcp_rag_agent/mcp_server/tools.py, mcp_rag_agent/mongodb/client.py, mcp_rag_agent/ingestion/parsers.py. This section covers 928 nodes and 2214 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: CLI &amp; Skill Installers (928 nodes, 2214 edges)
+    subgraph cli_skills_mcp_rag_agent_core_log_setup_py_250c96c5["mcp_rag_agent/core/log_setup.py"]
+        src_mcp_rag_agent_core_log_setup_correlationidfi_d15f80d2("CorrelationIdFilter<br/><small>mcp_rag_agent/core/log_setup.py</small>")
+        src_mcp_rag_agent_core_log_setup_correlationidfi_b6907f9e("filter()<br/><small>mcp_rag_agent/core/log_setup.py</small>")
+        src_mcp_rag_agent_core_log_setup_jsonlogformatte_befaf7b6("JSONLogFormatter<br/><small>mcp_rag_agent/core/log_setup.py</small>")
+        src_mcp_rag_agent_core_log_setup_jsonlogformatte_b5673574("format()<br/><small>mcp_rag_agent/core/log_setup.py</small>")
+        src_mcp_rag_agent_core_log_setup_textlogformatte_ff325adb("TextLogFormatter<br/><small>mcp_rag_agent/core/log_setup.py</small>")
+        src_mcp_rag_agent_core_log_setup_textlogformatte_40dd8df5("format()<br/><small>mcp_rag_agent/core/log_setup.py</small>")
+    end
+    subgraph cli_skills_mcp_rag_agent_embeddings_hybrid_searc_0dfc7700["mcp_rag_agent/embeddings/hybrid_search.py"]
+        src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead("HybridSearch<br/><small>mcp_rag_agent/embeddings/hybrid_search.py</small>")
+        src_mcp_rag_agent_embeddings_hybrid_search_hybri_3fdfd8cb("search()<br/><small>mcp_rag_agent/embeddings/hybrid_search.py</small>")
+        src_mcp_rag_agent_embeddings_hybrid_search_hybri_c3179510("__init__()<br/><small>mcp_rag_agent/embeddings/hybrid_search.py</small>")
+        src_mcp_rag_agent_embeddings_hybrid_search_hybri_8fb8c7cf("vector_search()<br/><small>mcp_rag_agent/embeddings/hybrid_search.py</small>")
+    end
+    subgraph cli_skills_mcp_rag_agent_embeddings_embedding_ge_f88f3af2["mcp_rag_agent/embeddings/embedding_generator.py"]
+        src_mcp_rag_agent_embeddings_embedding_generator_b44c7636("EmbeddingGenerator<br/><small>mcp_rag_agent/embeddings/embedding_generator.py</small>")
+        src_mcp_rag_agent_embeddings_embedding_generator_c019b84b("__init__()<br/><small>mcp_rag_agent/embeddings/embedding_generator.py</small>")
+    end
+    src_mcp_rag_agent_agent_create_agent_5f33eaf0("create_agent.py")
+    src_mcp_rag_agent_agent_runner_e12495ad("runner.py")
+    src_mcp_rag_agent_embeddings_index_documents_28c6a18c("index_documents.py")
+    src_mcp_rag_agent_ingestion_pipeline_aa25cd1f("pipeline.py")
+    src_mcp_rag_agent_mcp_server_server_32edab88("server.py")
+    src_mcp_rag_agent_mcp_server_tools_9f252777("tools.py")
+    src_mcp_rag_agent_core_log_setup_correlationidfi_d15f80d2 -->|method| src_mcp_rag_agent_core_log_setup_correlationidfi_b6907f9e
+    src_mcp_rag_agent_core_log_setup_jsonlogformatte_befaf7b6 -->|method| src_mcp_rag_agent_core_log_setup_jsonlogformatte_b5673574
+    src_mcp_rag_agent_core_log_setup_textlogformatte_ff325adb -->|method| src_mcp_rag_agent_core_log_setup_textlogformatte_40dd8df5
+    src_mcp_rag_agent_embeddings_embedding_generator_b44c7636 -->|method| src_mcp_rag_agent_embeddings_embedding_generator_c019b84b
+    src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead -->|method| src_mcp_rag_agent_embeddings_hybrid_search_hybri_3fdfd8cb
+    src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead -->|method| src_mcp_rag_agent_embeddings_hybrid_search_hybri_c3179510
+    src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead -->|method| src_mcp_rag_agent_embeddings_hybrid_search_hybri_8fb8c7cf
+    src_mcp_rag_agent_embeddings_index_documents_28c6a18c -->|imports| src_mcp_rag_agent_embeddings_embedding_generator_b44c7636
+    src_mcp_rag_agent_embeddings_index_documents_28c6a18c -->|imports| src_mcp_rag_agent_ingestion_pipeline_aa25cd1f
+    src_mcp_rag_agent_ingestion_pipeline_aa25cd1f -->|imports| src_mcp_rag_agent_embeddings_embedding_generator_b44c7636
+    src_mcp_rag_agent_mcp_server_server_32edab88 -->|imports| src_mcp_rag_agent_mcp_server_tools_9f252777
+    src_mcp_rag_agent_mcp_server_tools_9f252777 -->|imports| src_mcp_rag_agent_embeddings_embedding_generator_b44c7636
+    src_mcp_rag_agent_mcp_server_tools_9f252777 -->|imports| src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead
+    src_mcp_rag_agent_agent_create_agent_5f33eaf0 -->|imports| src_mcp_rag_agent_agent_runner_e12495ad
+    src_mcp_rag_agent_agent_create_agent_5f33eaf0 -->|imports| src_mcp_rag_agent_mcp_server_tools_9f252777
+    src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead -->|uses| src_mcp_rag_agent_embeddings_embedding_generator_b44c7636
+    %% Omitted for readability: 910 nodes, 0 edges
+    class src_mcp_rag_agent_core_log_setup_correlationidfi_d15f80d2 klass;
+    class src_mcp_rag_agent_core_log_setup_correlationidfi_b6907f9e function;
+    class src_mcp_rag_agent_core_log_setup_jsonlogformatte_befaf7b6 klass;
+    class src_mcp_rag_agent_core_log_setup_jsonlogformatte_b5673574 function;
+    class src_mcp_rag_agent_core_log_setup_textlogformatte_ff325adb klass;
+    class src_mcp_rag_agent_core_log_setup_textlogformatte_40dd8df5 function;
+    class src_mcp_rag_agent_embeddings_hybrid_search_hybri_90af6ead klass;
+    class src_mcp_rag_agent_embeddings_hybrid_search_hybri_3fdfd8cb function;
+    class src_mcp_rag_agent_embeddings_hybrid_search_hybri_c3179510 function;
+    class src_mcp_rag_agent_embeddings_hybrid_search_hybri_8fb8c7cf function;
+    class src_mcp_rag_agent_embeddings_embedding_generator_b44c7636 klass;
+    class src_mcp_rag_agent_embeddings_embedding_generator_c019b84b function;
+    class src_mcp_rag_agent_agent_create_agent_5f33eaf0 module;
+    class src_mcp_rag_agent_agent_runner_e12495ad module;
+    class src_mcp_rag_agent_embeddings_index_documents_28c6a18c module;
+    class src_mcp_rag_agent_ingestion_pipeline_aa25cd1f module;
+    class src_mcp_rag_agent_mcp_server_server_32edab88 module;
+    class src_mcp_rag_agent_mcp_server_tools_9f252777 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>CorrelationIdFilter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>setup_logging()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><code>filter()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td>CorrelationIdFilter node in mcp_rag_agent/core/log_setup.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>JSONLogFormatter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>setup_logging()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small><br><code>test_json_log_formatter()</code><br><small style="color:var(--muted)">tests/unit_tests/test_observability.py</small><br><code>TestStructuredLoggingAndRedaction</code><br><small style="color:var(--muted)">tests/unit_tests/test_observability.py</small></td>
+  <td><code>format()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td>JSONLogFormatter node in mcp_rag_agent/core/log_setup.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>TextLogFormatter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>setup_logging()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><code>format()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td>TextLogFormatter node in mcp_rag_agent/core/log_setup.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>EmbeddingGenerator</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/__init__.py</small><br><code>AdvancedRetriever</code><br><small style="color:var(--muted)">mcp_rag_agent/retrieval/pipeline.py</small><br><code>DocumentIngestionPipeline</code><br><small style="color:var(--muted)">mcp_rag_agent/ingestion/pipeline.py</small><br>+21 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small><br><code>ConfigurationError</code><br><small style="color:var(--muted)">mcp_rag_agent/core/config.py</small><br><code>dimensions()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small><br>+3 more</td>
+  <td>EmbeddingGenerator node in mcp_rag_agent/embeddings/embedding_generator.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>get_hybrid_search()</code><br><small style="color:var(--muted)">mcp_rag_agent/mcp_server/tools.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>set_hybrid_search()</code><br><small style="color:var(--muted)">mcp_rag_agent/mcp_server/tools.py</small><br>+1 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>EmbeddingGenerator</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small><br><code>index_document()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br>+6 more</td>
+  <td>HybridSearch node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>SemanticSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/__init__.py</small><br><code>documents from folder()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/index_documents.py</small><br><code>index_documents.py</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/index_documents.py</small><br>+2 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small><br><code>EmbeddingGenerator</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small><br><code>index_document()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small><br>+4 more</td>
+  <td>SemanticSearch node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>MongoDBClient</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/__init__.py</small><br><code>AdvancedRetriever</code><br><small style="color:var(--muted)">mcp_rag_agent/retrieval/pipeline.py</small><br><code>approval.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br>+39 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>collection_exists()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>connect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br>+14 more</td>
+  <td>MongoDBClient node in mcp_rag_agent/mongodb/client.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>.db()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>MongoDBClient</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td><code>connect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td>.db() node in mcp_rag_agent/mongodb/client.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>.format()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>JSONLogFormatter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.format() node in mcp_rag_agent/core/log_setup.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>setup_logging()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.py</code><br><small style="color:var(--muted)">mcp_rag_agent/api/app.py</small><br><code>create_agent.py</code><br><small style="color:var(--muted)">mcp_rag_agent/agent/create_agent.py</small><br><code>index_documents.py</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/index_documents.py</small><br>+4 more</td>
+  <td><code>CorrelationIdFilter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small><br><code>JSONLogFormatter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small><br><code>MaskingFilter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small><br>+1 more</td>
+  <td>setup_logging() node in mcp_rag_agent/core/log_setup.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>.format()</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>TextLogFormatter</code><br><small style="color:var(--muted)">mcp_rag_agent/core/log_setup.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.format() node in mcp_rag_agent/core/log_setup.py.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>EmbeddingGenerator</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/embedding_generator.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in mcp_rag_agent/embeddings/embedding_generator.py.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>.index_document()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.index_document() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>.index_documents()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.index_documents() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>.search()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.search() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>.setup_indexes()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.setup_indexes() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>.text_search()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.text_search() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>.vector_search()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>HybridSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.vector_search() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>collection_exists()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>connect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>create_collection()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br>+10 more</td>
+  <td>main() node in mcp_rag_agent/embeddings/hybrid_search.py.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/index_documents.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>clear_indexes()</code><br><small style="color:var(--muted)">mcp_rag_agent/ingestion/pipeline.py</small><br><code>collection_exists()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>connect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br>+11 more</td>
+  <td>main() node in mcp_rag_agent/embeddings/index_documents.py.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>collection_exists()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>connect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>create_collection()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br>+8 more</td>
+  <td>main() node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>.index_document()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SemanticSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.index_document() node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>.index_documents()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small><br><code>SemanticSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.index_documents() node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SemanticSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>.search()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small><br><code>SemanticSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.search() node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>.setup_index()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/index_documents.py</small><br><code>SemanticSearch</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.setup_index() node in mcp_rag_agent/embeddings/semantic_search.py.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">mcp_rag_agent/ingestion/pipeline.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DocumentIngestionPipeline</code><br><small style="color:var(--muted)">mcp_rag_agent/ingestion/pipeline.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in mcp_rag_agent/ingestion/pipeline.py.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>connect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>disconnect()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br><code>list_collections()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small><br>+1 more</td>
+  <td>main() node in mcp_rag_agent/mongodb/client.py.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>.collection_exists()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/index_documents.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/semantic_search.py</small><br><code>main()</code><br><small style="color:var(--muted)">mcp_rag_agent/embeddings/hybrid_search.py</small><br>+1 more</td>
+  <td><code>list_collections()</code><br><small style="color:var(--muted)">mcp_rag_agent/mongodb/client.py</small></td>
+  <td>.collection_exists() node in mcp_rag_agent/mongodb/client.py.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mcp_rag_agent/mcp_server/tools.py</code></td><td>48 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/ingestion/parsers.py</code></td><td>39 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/mongodb/client.py</code></td><td>39 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/agent/models.py</code></td><td>37 nodes</td></tr>
+<tr><td><code>api/static/app.js</code></td><td>32 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/observability/tracer.py</code></td><td>25 nodes</td></tr>
+<tr><td><code>it_support/runbooks/models.py</code></td><td>24 nodes</td></tr>
+<tr><td><code>it_support/runbooks/runbook_definitions.py</code></td><td>24 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x445, imports x345, explains x327, references x248. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. Serving API ====== -->
+<h2 id="serve-api">6. Serving API</h2>
+<p>Serving API groups implementation around api, agent, rag, mcp, mostly in api/services/conversation_service.py, api/schemas/conversation.py, api/routes/conversations.py. This section covers 123 nodes and 219 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Serving API (123 nodes, 219 edges)
+    subgraph serve_api_api_services_conversation_service_py_0c163c6f["api/services/conversation_service.py"]
+        src_mcp_rag_agent_api_services_conversation_serv_607bfcb5("conversation_service.py")
+        src_mcp_rag_agent_api_services_conversation_serv_c5ac9399("ConversationService<br/><small>api/services/conversation_service.py</small>")
+        src_mcp_rag_agent_api_services_conversation_serv_de85a765("delete_thread()<br/><small>api/services/conversation_service.py</small>")
+        src_mcp_rag_agent_api_services_conversation_serv_e2163786("__init__()<br/><small>api/services/conversation_service.py</small>")
+        src_mcp_rag_agent_api_services_conversation_serv_106a07b0("set_runner()<br/><small>api/services/conversation_service.py</small>")
+        src_mcp_rag_agent_api_services_conversation_serv_62cfffaa("create_thread()<br/><small>api/services/conversation_service.py</small>")
+        src_mcp_rag_agent_api_services_conversation_serv_a71a801e("list_threads()<br/><small>api/services/conversation_service.py</small>")
+        src_mcp_rag_agent_api_services_conversation_serv_a3058ac2("get_history()<br/><small>api/services/conversation_service.py</small>")
+    end
+    subgraph serve_api_api_services_admin_service_py_a49f9b78["api/services/admin_service.py"]
+        src_mcp_rag_agent_api_services_admin_service_adm_7079ea15("AdminAPIService<br/><small>api/services/admin_service.py</small>")
+        src_mcp_rag_agent_api_services_admin_service_adm_83eef744("list_incidents()<br/><small>api/services/admin_service.py</small>")
+        src_mcp_rag_agent_api_services_admin_service_adm_ebbb7214("get_audit_logs()<br/><small>api/services/admin_service.py</small>")
+    end
+    subgraph serve_api_api_services_chat_service_py_55c0db74["api/services/chat_service.py"]
+        src_mcp_rag_agent_api_services_chat_service_chat_71324f16("ChatService<br/><small>api/services/chat_service.py</small>")
+        src_mcp_rag_agent_api_services_chat_service_chat_cb70277c("get_runner()<br/><small>api/services/chat_service.py</small>")
+        src_mcp_rag_agent_api_services_chat_service_chat_1f66ba2b("execute_chat()<br/><small>api/services/chat_service.py</small>")
+    end
+    src_mcp_rag_agent_api_routes_chat_b7b68e8a("chat.py")
+    src_mcp_rag_agent_api_routes_conversations_a7291122("conversations.py")
+    src_mcp_rag_agent_api_routes_health_6ade8313("health.py")
+    src_mcp_rag_agent_api_schemas_init_3842be93("__init__.py")
+    src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 -->|method| src_mcp_rag_agent_api_services_conversation_serv_de85a765
+    src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 -->|method| src_mcp_rag_agent_api_services_conversation_serv_e2163786
+    src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 -->|method| src_mcp_rag_agent_api_services_conversation_serv_106a07b0
+    src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 -->|method| src_mcp_rag_agent_api_services_conversation_serv_62cfffaa
+    src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 -->|method| src_mcp_rag_agent_api_services_conversation_serv_a71a801e
+    src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 -->|method| src_mcp_rag_agent_api_services_conversation_serv_a3058ac2
+    src_mcp_rag_agent_api_services_chat_service_chat_71324f16 -->|method| src_mcp_rag_agent_api_services_chat_service_chat_cb70277c
+    src_mcp_rag_agent_api_services_chat_service_chat_71324f16 -->|method| src_mcp_rag_agent_api_services_chat_service_chat_1f66ba2b
+    src_mcp_rag_agent_api_services_admin_service_adm_7079ea15 -->|method| src_mcp_rag_agent_api_services_admin_service_adm_83eef744
+    src_mcp_rag_agent_api_services_admin_service_adm_7079ea15 -->|method| src_mcp_rag_agent_api_services_admin_service_adm_ebbb7214
+    src_mcp_rag_agent_api_services_chat_service_chat_1f66ba2b -->|calls| src_mcp_rag_agent_api_services_chat_service_chat_cb70277c
+    src_mcp_rag_agent_api_routes_chat_b7b68e8a -->|imports| src_mcp_rag_agent_api_services_chat_service_chat_71324f16
+    src_mcp_rag_agent_api_routes_conversations_a7291122 -->|imports| src_mcp_rag_agent_api_services_conversation_serv_c5ac9399
+    src_mcp_rag_agent_api_routes_conversations_a7291122 -->|imports| src_mcp_rag_agent_api_services_conversation_serv_607bfcb5
+    %% Omitted for readability: 105 nodes, 0 edges
+    class src_mcp_rag_agent_api_services_conversation_serv_607bfcb5 module;
+    class src_mcp_rag_agent_api_services_conversation_serv_c5ac9399 klass;
+    class src_mcp_rag_agent_api_services_conversation_serv_de85a765 function;
+    class src_mcp_rag_agent_api_services_conversation_serv_e2163786 function;
+    class src_mcp_rag_agent_api_services_conversation_serv_106a07b0 function;
+    class src_mcp_rag_agent_api_services_conversation_serv_62cfffaa function;
+    class src_mcp_rag_agent_api_services_conversation_serv_a71a801e function;
+    class src_mcp_rag_agent_api_services_conversation_serv_a3058ac2 function;
+    class src_mcp_rag_agent_api_services_admin_service_adm_7079ea15 api;
+    class src_mcp_rag_agent_api_services_admin_service_adm_83eef744 function;
+    class src_mcp_rag_agent_api_services_admin_service_adm_ebbb7214 function;
+    class src_mcp_rag_agent_api_services_chat_service_chat_71324f16 klass;
+    class src_mcp_rag_agent_api_services_chat_service_chat_cb70277c function;
+    class src_mcp_rag_agent_api_services_chat_service_chat_1f66ba2b function;
+    class src_mcp_rag_agent_api_routes_chat_b7b68e8a api;
+    class src_mcp_rag_agent_api_routes_conversations_a7291122 module;
+    class src_mcp_rag_agent_api_routes_health_6ade8313 api;
+    class src_mcp_rag_agent_api_schemas_init_3842be93 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>ChatMessageItem</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">api/schemas/__init__.py</small><br><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br>+1 more</td>
+  <td>No direct outbound edge</td>
+  <td>Supports retrieval-augmented Q&amp;A or streaming chat.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ConversationHistoryResponse</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">api/schemas/__init__.py</small><br><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small><br>+2 more</td>
+  <td>No direct outbound edge</td>
+  <td>ConversationHistoryResponse node in api/schemas/conversation.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>ConversationThreadResponse</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">api/schemas/__init__.py</small><br><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>ConversationThreadResponse node in api/schemas/conversation.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>CreateConversationRequest</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">api/schemas/__init__.py</small><br><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small><br>+2 more</td>
+  <td>No direct outbound edge</td>
+  <td>CreateConversationRequest node in api/schemas/conversation.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>DeleteConversationResponse</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">api/schemas/__init__.py</small><br><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small><br>+2 more</td>
+  <td>No direct outbound edge</td>
+  <td>DeleteConversationResponse node in api/schemas/conversation.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">api/services/__init__.py</small><br><code>app.py</code><br><small style="color:var(--muted)">mcp_rag_agent/api/app.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small><br>+8 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>ChatMessageItem</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small><br><code>Config</code><br><small style="color:var(--muted)">mcp_rag_agent/core/config.py</small><br>+10 more</td>
+  <td>ConversationService node in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>create_conversation()</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>ConversationThreadResponse</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small><br><code>create_thread()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br>+1 more</td>
+  <td>create_conversation() node in api/routes/conversations.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>get_conversation_history()</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ConversationHistoryResponse</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small><br><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>get_history()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td>get_conversation_history() node in api/routes/conversations.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>list_conversations()</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>ConversationThreadResponse</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small><br><code>list_threads()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td>list_conversations() node in api/routes/conversations.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>.create_thread()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>create_conversation()</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.create_thread() node in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>.get_history()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>get_conversation_history()</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><code>ChatMessageItem</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td>.get_history() node in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>.list_threads()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>list_conversations()</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.list_threads() node in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>.set_runner()</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.set_runner() node in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>post</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>post node in project.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>conversation.py</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><code>datetime</code><br><code>pydantic</code><br><code>typing</code></td>
+  <td>Module file in api/schemas/conversation.py.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>BaseModel</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>BaseModel node in project.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>schemas/__init__.py</code><br><small style="color:var(--muted)">api/schemas/__init__.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ChatMessageItem</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small><br><code>ChatRequest</code><br><small style="color:var(--muted)">api/schemas/chat.py</small><br><code>ChatResponse</code><br><small style="color:var(--muted)">api/schemas/chat.py</small><br>+9 more</td>
+  <td>Module file in api/schemas/__init__.py.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>conversation_service.py</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>app.py</code><br><small style="color:var(--muted)">mcp_rag_agent/api/app.py</small><br><code>conversations.py</code><br><small style="color:var(--muted)">api/routes/conversations.py</small><br><code>dependencies.py</code><br><small style="color:var(--muted)">mcp_rag_agent/api/dependencies.py</small></td>
+  <td><code>asyncio</code><br><code>ChatMessageItem</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small><br><code>Config</code><br><small style="color:var(--muted)">mcp_rag_agent/core/config.py</small><br>+13 more</td>
+  <td>Module file in api/services/conversation_service.py.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Any</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Any node in project.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>api/services/__init__.py</code><br><small style="color:var(--muted)">api/services/__init__.py</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ChatService</code><br><small style="color:var(--muted)">api/services/chat_service.py</small><br><code>ConversationService</code><br><small style="color:var(--muted)">api/services/conversation_service.py</small><br><code>ITTicketAPIService</code><br><small style="color:var(--muted)">api/services/it_ticket_service.py</small></td>
+  <td>Module file in api/services/__init__.py.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Delegates thread creation to ConversationService.</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Delegates thread creation to ConversationService..</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Retrieves all tracked conversation threads.</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Retrieves all tracked conversation threads..</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Retrieves conversation history or raises 404 if not found.</code><br><small style="color:var(--muted)">api/routes/conversations.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Retrieves conversation history or raises 404 if not found..</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Pydantic schemas for /api/v1/conversations endpoints.</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Pydantic schemas for /api/v1/conversations endpoints..</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Request model for creating a new isolated conversation thread.</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Request model for creating a new isolated conversation thread..</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Response model representing an active conversation thread.</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Response model representing an active conversation thread..</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Clean representation of a dialogue turn (Zero-CoT safe).</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Clean representation of a dialogue turn (Zero-CoT safe)..</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Response model containing conversation dialogue history.</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Response model containing conversation dialogue history..</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Response model for conversation deletion.</code><br><small style="color:var(--muted)">api/schemas/conversation.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Response model for conversation deletion..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>api/services/conversation_service.py</code></td><td>15 nodes</td></tr>
+<tr><td><code>api/schemas/conversation.py</code></td><td>12 nodes</td></tr>
+<tr><td><code>api/routes/conversations.py</code></td><td>10 nodes</td></tr>
+<tr><td><code>api/schemas/chat.py</code></td><td>10 nodes</td></tr>
+<tr><td><code>api/services/admin_service.py</code></td><td>10 nodes</td></tr>
+<tr><td><code>api/routes/admin.py</code></td><td>8 nodes</td></tr>
+<tr><td><code>api/schemas/health.py</code></td><td>8 nodes</td></tr>
+<tr><td><code>api/routes/health.py</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: explains x49, imports x32, uses x28, references x24. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. Security & Global Graph ====== -->
+<h2 id="security-global">7. Security &amp; Global Graph</h2>
+<p>Security &amp; Global Graph groups implementation around security, mcp, rag, agent, mostly in mcp_rag_agent/security/approval.py, mcp_rag_agent/security/authorization.py, mcp_rag_agent/security/rbac.py. This section covers 82 nodes and 179 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Security &amp; Global Graph (82 nodes, 179 edges)
+    subgraph security_global_mcp_rag_agent_security_approval_0f3b28af["mcp_rag_agent/security/approval.py"]
+        src_mcp_rag_agent_security_approval_approvalserv_0592730f("ApprovalService<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_c35cfda1("approval.py")
+        src_mcp_rag_agent_security_approval_approvalserv_8c17bdff("__init__()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalserv_95e8cd0d("get_request()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalserv_e651fa52("approve()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalserv_bd3f272e("reject()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalserv_696b9811("execute_approved_action()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalserv_b73e6b99("list_pending()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalstor_c0a717db("ApprovalStore<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalstor_fe75aec4("__init__()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalstor_2e581548("_collection()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalstor_97073a13("create()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalstor_ba6426e7("get()<br/><small>mcp_rag_agent/security/approval.py</small>")
+        src_mcp_rag_agent_security_approval_approvalstor_3f6c4f75("update()<br/><small>mcp_rag_agent/security/approval.py</small>")
+    end
+    subgraph security_global_mcp_rag_agent_security_authoriza_e6a9d2de["mcp_rag_agent/security/authorization.py"]
+        src_mcp_rag_agent_security_authorization_authori_e1bfef78("AuthorizationService<br/><small>mcp_rag_agent/security/authorization.py</small>")
+        src_mcp_rag_agent_security_authorization_c16d99b1("authorization.py")
+    end
+    src_mcp_rag_agent_security_init_8bbba6f8("__init__.py")
+    tests_unit_tests_security_test_security_regressi_f36c0c93("risk action blocked()<br/><small>unit_tests/security/test_security_regression.py</small>")
+    src_mcp_rag_agent_security_approval_approvalserv_0592730f -->|method| src_mcp_rag_agent_security_approval_approvalserv_8c17bdff
+    src_mcp_rag_agent_security_approval_approvalserv_0592730f -->|method| src_mcp_rag_agent_security_approval_approvalserv_95e8cd0d
+    src_mcp_rag_agent_security_approval_approvalserv_0592730f -->|method| src_mcp_rag_agent_security_approval_approvalserv_e651fa52
+    src_mcp_rag_agent_security_approval_approvalserv_0592730f -->|method| src_mcp_rag_agent_security_approval_approvalserv_bd3f272e
+    src_mcp_rag_agent_security_approval_approvalserv_0592730f -->|method| src_mcp_rag_agent_security_approval_approvalserv_696b9811
+    src_mcp_rag_agent_security_approval_approvalserv_0592730f -->|method| src_mcp_rag_agent_security_approval_approvalserv_b73e6b99
+    src_mcp_rag_agent_security_approval_approvalstor_c0a717db -->|method| src_mcp_rag_agent_security_approval_approvalstor_fe75aec4
+    src_mcp_rag_agent_security_approval_approvalstor_c0a717db -->|method| src_mcp_rag_agent_security_approval_approvalstor_2e581548
+    src_mcp_rag_agent_security_approval_approvalstor_c0a717db -->|method| src_mcp_rag_agent_security_approval_approvalstor_97073a13
+    src_mcp_rag_agent_security_approval_approvalstor_c0a717db -->|method| src_mcp_rag_agent_security_approval_approvalstor_ba6426e7
+    src_mcp_rag_agent_security_approval_approvalstor_c0a717db -->|method| src_mcp_rag_agent_security_approval_approvalstor_3f6c4f75
+    src_mcp_rag_agent_security_approval_approvalserv_8c17bdff -->|calls| src_mcp_rag_agent_security_approval_approvalstor_c0a717db
+    src_mcp_rag_agent_security_init_8bbba6f8 -->|imports| src_mcp_rag_agent_security_authorization_authori_e1bfef78
+    src_mcp_rag_agent_security_init_8bbba6f8 -->|imports| src_mcp_rag_agent_security_approval_approvalserv_0592730f
+    src_mcp_rag_agent_security_init_8bbba6f8 -->|imports| src_mcp_rag_agent_security_approval_approvalstor_c0a717db
+    tests_unit_tests_security_test_security_regressi_f36c0c93 -->|uses| src_mcp_rag_agent_security_approval_approvalstor_c0a717db
+    tests_unit_tests_security_test_security_regressi_f36c0c93 -->|uses| src_mcp_rag_agent_security_approval_approvalserv_0592730f
+    %% Omitted for readability: 64 nodes, 0 edges
+    class src_mcp_rag_agent_security_approval_approvalserv_0592730f klass;
+    class src_mcp_rag_agent_security_approval_c35cfda1 module;
+    class src_mcp_rag_agent_security_approval_approvalserv_8c17bdff function;
+    class src_mcp_rag_agent_security_approval_approvalserv_95e8cd0d function;
+    class src_mcp_rag_agent_security_approval_approvalserv_e651fa52 function;
+    class src_mcp_rag_agent_security_approval_approvalserv_bd3f272e function;
+    class src_mcp_rag_agent_security_approval_approvalserv_696b9811 function;
+    class src_mcp_rag_agent_security_approval_approvalserv_b73e6b99 function;
+    class src_mcp_rag_agent_security_approval_approvalstor_c0a717db ui;
+    class src_mcp_rag_agent_security_approval_approvalstor_fe75aec4 function;
+    class src_mcp_rag_agent_security_approval_approvalstor_2e581548 function;
+    class src_mcp_rag_agent_security_approval_approvalstor_97073a13 function;
+    class src_mcp_rag_agent_security_approval_approvalstor_ba6426e7 function;
+    class src_mcp_rag_agent_security_approval_approvalstor_3f6c4f75 function;
+    class src_mcp_rag_agent_security_authorization_authori_e1bfef78 klass;
+    class src_mcp_rag_agent_security_authorization_c16d99b1 module;
+    class src_mcp_rag_agent_security_init_8bbba6f8 module;
+    class tests_unit_tests_security_test_security_regressi_f36c0c93 test;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>AuthorizationDecision</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small></td>
+  <td><code>allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>deny()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>Permission</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td>AuthorizationDecision node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>admin operations denied()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small><br><code>auth_service()</code><br><small style="color:var(--muted)">unit_tests/security/test_authorization.py</small><br>+3 more</td>
+  <td><code>can()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_access_device()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_access_ticket()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br>+6 more</td>
+  <td>AuthorizationService node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Permission</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>admin operations denied()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small><br><code>admin role permissions()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small><br>+16 more</td>
+  <td>No direct outbound edge</td>
+  <td>Permission node in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>SecuritySubject</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>admin operations denied()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small><br><code>admin.py</code><br><small style="color:var(--muted)">api/routes/admin.py</small><br>+31 more</td>
+  <td>No direct outbound edge</td>
+  <td>SecuritySubject node in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>.allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationDecision</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_access_device()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>.allow() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>.deny()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationDecision</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_access_device()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>.deny() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>.can()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_execute_tool()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><code>allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>deny()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>has_permission()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td>.can() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>.can_access_device()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><code>allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>deny()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>has_permission()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td>.can_access_device() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>.can_access_ticket()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><code>allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>deny()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td>.can_access_ticket() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>.can_access_user()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_execute_tool()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><code>allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>deny()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>has_permission()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td>.can_access_user() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>.can_execute_tool()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><code>allow()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>can_access_user()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br>+1 more</td>
+  <td>.can_execute_tool() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>.filter_documents_for_subject()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.filter_documents_for_subject() node in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>get_role_permissions()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>admin role permissions()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small><br><code>admin role permissions()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small><br>+4 more</td>
+  <td>No direct outbound edge</td>
+  <td>get_role_permissions() node in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>has_permission()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>approval.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br><code>approve()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br>+8 more</td>
+  <td>No direct outbound edge</td>
+  <td>has_permission() node in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>set_current_subject()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>subject contextvars tracking()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>set_current_subject() node in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>with_security_subject()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small><br><code>subject contextvars tracking()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>with_security_subject() node in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>test_employee_role_permissions()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>get_role_permissions()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Permission</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Role</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>test_it_support_role_permissions()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>get_role_permissions()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Permission</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Role</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>test_subject_contextvars_tracking()</code><br><small style="color:var(--muted)">unit_tests/security/test_rbac.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>get_current_subject()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Role</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>SecuritySubject</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br>+2 more</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>test_employee_attempting_admin_operations_denied()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>AuthorizationService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small><br><code>Permission</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Role</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br>+1 more</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>authorization.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>dependencies.py</code><br><small style="color:var(--muted)">mcp_rag_agent/api/dependencies.py</small></td>
+  <td><code>has_permission()</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>Permission</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small><br><code>pydantic</code><br>+4 more</td>
+  <td>Module file in mcp_rag_agent/security/authorization.py.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Any</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Any node in project.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>BaseModel</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>BaseModel node in project.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>mcp_rag_agent/security/__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/__init__.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>ApprovalNotFoundError</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br><code>ApprovalRequest</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br><code>ApprovalService</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br>+18 more</td>
+  <td>Module file in mcp_rag_agent/security/__init__.py.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>rbac.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/rbac.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>admin.py</code><br><small style="color:var(--muted)">api/routes/admin.py</small><br><code>approval.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/approval.py</small><br><code>audit.py</code><br><small style="color:var(--muted)">mcp_rag_agent/security/audit.py</small><br>+2 more</td>
+  <td><code>contextlib</code><br><code>contextvars</code><br><code>Enum</code><br>+2 more</td>
+  <td>Module file in mcp_rag_agent/security/rbac.py.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>BaseModel</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>BaseModel node in project.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Authorization service providing role-based, resource-level, tool, and retrieval…</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Authorization service providing role-based, resource-level, tool, and retrieval….</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Check authorization to access user context.</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Check authorization to access user context..</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Structured result of an authorization evaluation.</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Structured result of an authorization evaluation..</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Check authorization to access device context.</code><br><small style="color:var(--muted)">mcp_rag_agent/security/authorization.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Check authorization to access device context..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mcp_rag_agent/security/approval.py</code></td><td>28 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/security/authorization.py</code></td><td>20 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/security/rbac.py</code></td><td>14 nodes</td></tr>
+<tr><td><code>unit_tests/security/test_rbac.py</code></td><td>6 nodes</td></tr>
+<tr><td><code>unit_tests/security/test_security_regression.py</code></td><td>4 nodes</td></tr>
+<tr><td><code>mcp_rag_agent/security/__init__.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: references x38, explains x31, calls x30, method x20. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. Tests & Fixtures ====== -->
+<h2 id="tests-fixtures">8. Tests &amp; Fixtures</h2>
+<p>Tests &amp; Fixtures groups implementation around tests, test, unit, agent, mostly in tests/unit_tests/test_guardrails_adversarial.py, tests/unit_tests/test_evaluation_framework.py, tests/unit_tests/test_observability.py. This section covers 1487 nodes and 2703 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Tests &amp; Fixtures (1487 nodes, 2703 edges)
+    subgraph tests_fixtures_evaluation_reports_comparator_py_b2debe43["evaluation/reports/comparator.py"]
+        evaluation_reports_comparator_regressioncomparat_2398b44c("RegressionComparator<br/><small>evaluation/reports/comparator.py</small>")
+        evaluation_reports_comparator_regressioncomparat_92d46c5c("compute_metric_table()<br/><small>evaluation/reports/comparator.py</small>")
+        evaluation_reports_comparator_regressioncomparat_c8cafffd("identify_failures()<br/><small>evaluation/reports/comparator.py</small>")
+        evaluation_reports_comparator_regressioncomparat_691c0e59("generate_markdown_report()<br/><small>evaluation/reports/comparator.py</small>")
+        evaluation_reports_comparator_regressioncomparat_304e0b06("__init__()<br/><small>evaluation/reports/comparator.py</small>")
+        evaluation_reports_comparator_regressioncomparat_d1be1973("_load_summary()<br/><small>evaluation/reports/comparator.py</small>")
+    end
+    subgraph tests_fixtures_tests_unit_tests_test_evaluation_57508297["tests/unit_tests/test_evaluation_framework.py"]
+        tests_unit_tests_test_evaluation_framework_506a912a("test_evaluation_framework.py")
+        tests_unit_tests_test_evaluation_framework_testr_53cb6947("TestRegressionComparator<br/><small>tests/unit_tests/test_evaluation_framework.py</small>")
+        tests_unit_tests_test_evaluation_framework_testr_1ed9274d("mock_eval_summaries()<br/><small>tests/unit_tests/test_evaluation_framework.py</small>")
+        tests_unit_tests_test_evaluation_framework_testr_64e60b9e("test_comparator_metric_differences()<br/><small>tests/unit_tests/test_evaluation_framework.py</small>")
+        tests_unit_tests_test_evaluation_framework_testr_654a3e51("test_comparator_identifies_all_failures()<br/><small>tests/unit_tests/test_evaluation_framework.py</small>")
+    end
+    subgraph tests_fixtures_evaluation_runners_eval_runner_py_977d2a2c["evaluation/runners/eval_runner.py"]
+        evaluation_runners_eval_runner_cdb18bb8("eval_runner.py")
+        evaluation_runners_eval_runner_evalrunsummary_40cd95f5("EvalRunSummary<br/><small>evaluation/runners/eval_runner.py</small>")
+        evaluation_runners_eval_runner_evalrunsummary_to_6eb51780("to_dataframe()<br/><small>evaluation/runners/eval_runner.py</small>")
+    end
+    evaluation_metrics_init_f49f5cf8("__init__.py")
+    src_mcp_rag_agent_it_support_init_14160440("__init__.py")
+    tests_unit_tests_it_support_test_it_evaluation_9cb74e03("test_it_evaluation.py")
+    tests_unit_tests_mongodb_test_client_testmongodb_800d2c4b("TestMongoDBClient<br/><small>unit_tests/mongodb/test_client.py</small>")
+    evaluation_reports_comparator_regressioncomparat_2398b44c -->|method| evaluation_reports_comparator_regressioncomparat_92d46c5c
+    evaluation_reports_comparator_regressioncomparat_2398b44c -->|method| evaluation_reports_comparator_regressioncomparat_c8cafffd
+    evaluation_reports_comparator_regressioncomparat_2398b44c -->|method| evaluation_reports_comparator_regressioncomparat_691c0e59
+    evaluation_reports_comparator_regressioncomparat_2398b44c -->|method| evaluation_reports_comparator_regressioncomparat_304e0b06
+    evaluation_reports_comparator_regressioncomparat_2398b44c -->|method| evaluation_reports_comparator_regressioncomparat_d1be1973
+    evaluation_runners_eval_runner_evalrunsummary_40cd95f5 -->|method| evaluation_runners_eval_runner_evalrunsummary_to_6eb51780
+    tests_unit_tests_test_evaluation_framework_testr_53cb6947 -->|method| tests_unit_tests_test_evaluation_framework_testr_1ed9274d
+    tests_unit_tests_test_evaluation_framework_testr_53cb6947 -->|method| tests_unit_tests_test_evaluation_framework_testr_64e60b9e
+    tests_unit_tests_test_evaluation_framework_testr_53cb6947 -->|method| tests_unit_tests_test_evaluation_framework_testr_654a3e51
+    tests_unit_tests_test_evaluation_framework_testr_1ed9274d -->|calls| evaluation_runners_eval_runner_evalrunsummary_40cd95f5
+    evaluation_reports_comparator_regressioncomparat_691c0e59 -->|calls| evaluation_reports_comparator_regressioncomparat_92d46c5c
+    evaluation_reports_comparator_regressioncomparat_691c0e59 -->|calls| evaluation_reports_comparator_regressioncomparat_c8cafffd
+    evaluation_reports_comparator_regressioncomparat_304e0b06 -->|calls| evaluation_reports_comparator_regressioncomparat_d1be1973
+    tests_unit_tests_test_evaluation_framework_testr_654a3e51 -->|calls| evaluation_reports_comparator_regressioncomparat_2398b44c
+    tests_unit_tests_test_evaluation_framework_testr_64e60b9e -->|calls| evaluation_reports_comparator_regressioncomparat_2398b44c
+    tests_unit_tests_test_evaluation_framework_506a912a -->|imports| evaluation_reports_comparator_regressioncomparat_2398b44c
+    tests_unit_tests_test_evaluation_framework_506a912a -->|imports| evaluation_runners_eval_runner_evalrunsummary_40cd95f5
+    tests_unit_tests_test_evaluation_framework_506a912a -->|imports| evaluation_runners_eval_runner_cdb18bb8
+    tests_unit_tests_it_support_test_it_evaluation_9cb74e03 -->|imports| evaluation_reports_comparator_regressioncomparat_2398b44c
+    tests_unit_tests_it_support_test_it_evaluation_9cb74e03 -->|imports| evaluation_runners_eval_runner_evalrunsummary_40cd95f5
+    tests_unit_tests_it_support_test_it_evaluation_9cb74e03 -->|imports| evaluation_runners_eval_runner_cdb18bb8
+    evaluation_reports_comparator_regressioncomparat_2398b44c -->|uses| evaluation_runners_eval_runner_evalrunsummary_40cd95f5
+    tests_unit_tests_test_evaluation_framework_testr_53cb6947 -->|uses| evaluation_runners_eval_runner_evalrunsummary_40cd95f5
+    tests_unit_tests_test_evaluation_framework_testr_53cb6947 -->|uses| evaluation_reports_comparator_regressioncomparat_2398b44c
+    %% Omitted for readability: 1469 nodes, 2 edges
+    class evaluation_reports_comparator_regressioncomparat_2398b44c klass;
+    class evaluation_reports_comparator_regressioncomparat_92d46c5c function;
+    class evaluation_reports_comparator_regressioncomparat_c8cafffd function;
+    class evaluation_reports_comparator_regressioncomparat_691c0e59 function;
+    class evaluation_reports_comparator_regressioncomparat_304e0b06 function;
+    class evaluation_reports_comparator_regressioncomparat_d1be1973 function;
+    class tests_unit_tests_test_evaluation_framework_506a912a test;
+    class tests_unit_tests_test_evaluation_framework_testr_53cb6947 test;
+    class tests_unit_tests_test_evaluation_framework_testr_1ed9274d test;
+    class tests_unit_tests_test_evaluation_framework_testr_64e60b9e test;
+    class tests_unit_tests_test_evaluation_framework_testr_654a3e51 test;
+    class evaluation_runners_eval_runner_cdb18bb8 module;
+    class evaluation_runners_eval_runner_evalrunsummary_40cd95f5 klass;
+    class evaluation_runners_eval_runner_evalrunsummary_to_6eb51780 function;
+    class evaluation_metrics_init_f49f5cf8 module;
+    class src_mcp_rag_agent_it_support_init_14160440 module;
+    class tests_unit_tests_it_support_test_it_evaluation_9cb74e03 test;
+    class tests_unit_tests_mongodb_test_client_testmongodb_800d2c4b test;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>DeviceRecord</code><br><small style="color:var(--muted)">it_support/devices/models.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">it_support/devices/__init__.py</small><br><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/it_support/__init__.py</small><br><code>_get_default_seed_devices()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br>+14 more</td>
+  <td>No direct outbound edge</td>
+  <td>DeviceRecord node in it_support/devices/models.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">it_support/devices/__init__.py</small><br><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/it_support/__init__.py</small><br><code>by device id()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small><br>+8 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small><br><code>create_device()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small><br><code>DeviceRecord</code><br><small style="color:var(--muted)">it_support/devices/models.py</small><br>+5 more</td>
+  <td>DeviceService node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">it_support/devices/__init__.py</small><br><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/it_support/__init__.py</small><br><code>_to_record()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br>+13 more</td>
+  <td>No direct outbound edge</td>
+  <td>DeviceNotFoundError node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td><code>__init__.py</code><br><small style="color:var(--muted)">it_support/devices/__init__.py</small><br><code>__init__.py</code><br><small style="color:var(--muted)">mcp_rag_agent/it_support/__init__.py</small><br><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small><br>+5 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>_collection()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>_to_record()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br>+7 more</td>
+  <td>DeviceStore node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>by device id()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small><br><code>by user id()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small><br><code>raises not found()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small><br>+1 more</td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small><br><code>create()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small><br><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br>+5 more</td>
+  <td>MemoryDeviceStore node in unit_tests/it_support/test_devices.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_it_agent_flows.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>setup_services()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_it_agent_flows.py</small></td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_it_agent_flows.py</small><br><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>DeviceRecord</code><br><small style="color:var(--muted)">it_support/devices/models.py</small><br>+2 more</td>
+  <td>MemoryDeviceStore node in unit_tests/it_support/test_it_agent_flows.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_mcp_it_tools.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>setup_services()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_mcp_it_tools.py</small></td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_mcp_it_tools.py</small><br><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>DeviceRecord</code><br><small style="color:var(--muted)">it_support/devices/models.py</small><br>+2 more</td>
+  <td>MemoryDeviceStore node in unit_tests/it_support/test_mcp_it_tools.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>device access blocked()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small></td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small><br><code>create()</code><br><small style="color:var(--muted)">unit_tests/security/test_security_regression.py</small><br><code>DeviceRecord</code><br><small style="color:var(--muted)">it_support/devices/models.py</small><br>+3 more</td>
+  <td>MemoryDeviceStore node in unit_tests/security/test_security_regression.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>._collection()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>._collection() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>_utc_now()</code><br><small style="color:var(--muted)">it_support/devices/models.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>_utc_now() node in it_support/devices/models.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>.create_device()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.create_device() node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>.get_device_info()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.get_device_info() node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>.get_user_devices()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.get_user_devices() node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>.list_devices()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.list_devices() node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>.upsert_device()</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceService</code><br><small style="color:var(--muted)">it_support/devices/service.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.upsert_device() node in it_support/devices/service.py.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>.create()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.create() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>.get()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>update_fields()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><code>_to_record()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>.get() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>.get_by_user()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><code>_to_record()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>.get_by_user() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><code>_get_default_seed_devices()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>.__init__() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>.list()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><code>_to_record()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>.list() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>._to_record()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>get()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>get_by_user()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br>+1 more</td>
+  <td><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>._to_record() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>.update_fields()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small><br><code>get()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>.update_fields() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>.upsert()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>DeviceStore</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.upsert() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>_get_default_seed_devices()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>__init__()</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td><code>DeviceRecord</code><br><small style="color:var(--muted)">it_support/devices/models.py</small></td>
+  <td>_get_default_seed_devices() node in it_support/devices/store.py.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>.create()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.create() node in unit_tests/it_support/test_devices.py.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>.get()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><code>DeviceNotFoundError</code><br><small style="color:var(--muted)">it_support/devices/store.py</small></td>
+  <td>.get() node in unit_tests/it_support/test_devices.py.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>.get_by_user()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.get_by_user() node in unit_tests/it_support/test_devices.py.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>.__init__()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.__init__() node in unit_tests/it_support/test_devices.py.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>.list()</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>MemoryDeviceStore</code><br><small style="color:var(--muted)">unit_tests/it_support/test_devices.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.list() node in unit_tests/it_support/test_devices.py.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>tests/unit_tests/test_guardrails_adversarial.py</code></td><td>66 nodes</td></tr>
+<tr><td><code>tests/unit_tests/test_evaluation_framework.py</code></td><td>60 nodes</td></tr>
+<tr><td><code>tests/unit_tests/test_observability.py</code></td><td>52 nodes</td></tr>
+<tr><td><code>unit_tests/mongodb/test_client.py</code></td><td>46 nodes</td></tr>
+<tr><td><code>tests/unit_tests/test_ingestion_pipeline.py</code></td><td>36 nodes</td></tr>
+<tr><td><code>evaluation/datasets/loader.py</code></td><td>34 nodes</td></tr>
+<tr><td><code>tests/unit_tests/test_advanced_retrieval.py</code></td><td>34 nodes</td></tr>
+<tr><td><code>tests/unit_tests/test_session_memory.py</code></td><td>34 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: explains x524, calls x432, method x363, contains x293. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 9. .to_dataframe ====== -->
+<h2 id="to-dataframe">9. .to_dataframe</h2>
+<p>.to_dataframe groups implementation around dataframe, evaluation, datasets, loaderpy, mostly in evaluation/datasets/loader.py. This section covers 4 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: .to_dataframe (4 nodes, 4 edges)
+    subgraph to_dataframe_evaluation_datasets_loader_py_acf98a90["evaluation/datasets/loader.py"]
+        evaluation_datasets_loader_rationale_114_12d86f42("Convert benchmark items to a pandas Dat...<br/><small>evaluation/datasets/loader.py</small>")
+        evaluation_datasets_loader_benchmarkdataset_to_d_5df77726("to_dataframe()<br/><small>evaluation/datasets/loader.py</small>")
+        evaluation_datasets_loader_itbenchmarkdataset_to_ae361a78("to_dataframe()<br/><small>evaluation/datasets/loader.py</small>")
+    end
+    evaluation_datasets_loader_py_dataframe_adc95297("DataFrame")
+    evaluation_datasets_loader_benchmarkdataset_to_d_5df77726 -->|references| evaluation_datasets_loader_py_dataframe_adc95297
+    evaluation_datasets_loader_itbenchmarkdataset_to_ae361a78 -->|references| evaluation_datasets_loader_py_dataframe_adc95297
+    evaluation_datasets_loader_rationale_114_12d86f42 -->|explains| evaluation_datasets_loader_benchmarkdataset_to_d_5df77726
+    evaluation_datasets_loader_rationale_114_12d86f42 -->|explains| evaluation_datasets_loader_itbenchmarkdataset_to_ae361a78
+    class evaluation_datasets_loader_rationale_114_12d86f42 concept;
+    class evaluation_datasets_loader_benchmarkdataset_to_d_5df77726 function;
+    class evaluation_datasets_loader_itbenchmarkdataset_to_ae361a78 function;
+    class evaluation_datasets_loader_py_dataframe_adc95297 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>.to_dataframe()</code><br><small style="color:var(--muted)">evaluation/datasets/loader.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>BenchmarkDataset</code><br><small style="color:var(--muted)">evaluation/datasets/loader.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.to_dataframe() node in evaluation/datasets/loader.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>.to_dataframe()</code><br><small style="color:var(--muted)">evaluation/datasets/loader.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ITBenchmarkDataset</code><br><small style="color:var(--muted)">evaluation/datasets/loader.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.to_dataframe() node in evaluation/datasets/loader.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>DataFrame</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DataFrame node in project.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Convert benchmark items to a pandas DataFrame.</code><br><small style="color:var(--muted)">evaluation/datasets/loader.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Convert benchmark items to a pandas DataFrame..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>evaluation/datasets/loader.py</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: references x2, explains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 10. setup.py ====== -->
+<h2 id="setup-py">10. setup.py</h2>
+<p>setup.py groups implementation around setuppy, read, setuptools, mostly in setup.py. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: setup.py (3 nodes, 2 edges)
+    subgraph setup_py_setup_py_682e67bb["setup.py"]
+        setup_80437a44("setup.py")
+        setup_read_e547d23d("read()<br/><small>setup.py</small>")
+    end
+    setuptools_bff5288d("setuptools")
+    setup_80437a44 -->|imports| setuptools_bff5288d
+    class setup_80437a44 module;
+    class setup_read_e547d23d function;
+    class setuptools_bff5288d function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>read()</code><br><small style="color:var(--muted)">setup.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>read() node in setup.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>setup.py</code><br><small style="color:var(--muted)">setup.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>os</code><br><code>setuptools</code></td>
+  <td>Module file in setup.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>setuptools</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>setup.py</code><br><small style="color:var(--muted)">setup.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>setuptools node in project.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>setup.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: imports x1, contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 11. evaluation/__init__.py ====== -->
+<h2 id="evaluation-init-py">11. evaluation/__init__.py</h2>
+<p>evaluation/__init__.py groups implementation around evaluation, module, rag, based, mostly in evaluation/__init__.py. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: evaluation/__init__.py (2 nodes, 1 edges)
+    evaluation_init_rationale_1_54fa4f29("Evaluation module for RAG-based agent....<br/><small>evaluation/__init__.py</small>")
+    evaluation_init_cb844e39("__init__.py")
+    evaluation_init_rationale_1_54fa4f29 -->|explains| evaluation_init_cb844e39
+    class evaluation_init_rationale_1_54fa4f29 concept;
+    class evaluation_init_cb844e39 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>evaluation/__init__.py</code><br><small style="color:var(--muted)">evaluation/__init__.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in evaluation/__init__.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Evaluation module for RAG-based agent. This module provides tools to evaluate…</code><br><small style="color:var(--muted)">evaluation/__init__.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Evaluation module for RAG-based agent. This module provides tools to evaluate….</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>evaluation/__init__.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 12. start.sh ====== -->
+<h2 id="start-sh">12. start.sh</h2>
+<p>start.sh groups implementation around startsh, script, mostly in start.sh. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: start.sh (2 nodes, 1 edges)
+    start_2b020927("start.sh")
+    start_sh_entry_e8fe8f17("start.sh script<br/><small>start.sh</small>")
+    start_2b020927 -->|contains| start_sh_entry_e8fe8f17
+    class start_2b020927 function;
+    class start_sh_entry_e8fe8f17 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>start.sh</code><br><small style="color:var(--muted)">start.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>start.sh node in start.sh.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>start.sh script</code><br><small style="color:var(--muted)">start.sh</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>start.sh script node in start.sh.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>start.sh</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>2674</td></tr>
+      <tr><td>Edges</td><td>6487</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>108</td></tr>
+      <tr><td>Documented Sections</td><td>11</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>5342</td></tr>
+      <tr><td>INFERRED</td><td>1145</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>L2 — Architecture Documentation</p>
+  <p>Generated: 2026-10-21 11:09 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>

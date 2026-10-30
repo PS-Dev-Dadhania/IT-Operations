@@ -1,0 +1,88 @@
+---
+source_file: "src/mcp_rag_agent/mongodb/client.py"
+type: "code"
+community: "typing"
+location: "L18"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/typing
+---
+
+# MongoDBClient
+
+## Connections
+- [[dot-__init__()_22]] - `references` [EXTRACTED]
+- [[dot-__init__()_50]] - `references` [EXTRACTED]
+- [[dot-__init__()_19]] - `references` [EXTRACTED]
+- [[dot-__init__()_48]] - `references` [EXTRACTED]
+- [[dot-__init__()_42]] - `references` [EXTRACTED]
+- [[dot-__init__()_18]] - `references` [EXTRACTED]
+- [[dot-__init__()_31]] - `references` [EXTRACTED]
+- [[dot-__init__()_1]] - `references` [EXTRACTED]
+- [[dot-__init__()_2]] - `references` [EXTRACTED]
+- [[dot-__init__()_3]] - `references` [EXTRACTED]
+- [[dot-__init__()_27]] - `references` [EXTRACTED]
+- [[dot-__init__()_4]] - `method` [EXTRACTED]
+- [[dot-client()]] - `calls` [INFERRED]
+- [[dot-collection_exists()]] - `method` [EXTRACTED]
+- [[dot-connect()]] - `method` [EXTRACTED]
+- [[dot-create_collection()]] - `method` [EXTRACTED]
+- [[dot-create_text_search_index()]] - `method` [EXTRACTED]
+- [[dot-create_vector_search_index()]] - `method` [EXTRACTED]
+- [[dot-db()]] - `method` [EXTRACTED]
+- [[dot-delete_documents()]] - `method` [EXTRACTED]
+- [[dot-disconnect()]] - `method` [EXTRACTED]
+- [[dot-find_documents()]] - `method` [EXTRACTED]
+- [[dot-get_collection()]] - `method` [EXTRACTED]
+- [[dot-hybrid_search()]] - `method` [EXTRACTED]
+- [[dot-insert_document()]] - `method` [EXTRACTED]
+- [[dot-insert_documents()]] - `method` [EXTRACTED]
+- [[dot-list_collections()]] - `method` [EXTRACTED]
+- [[dot-test_connect_records_database_error_on_failure()]] - `calls` [INFERRED]
+- [[dot-test_live_mongodb_client_wrapper()]] - `calls` [INFERRED]
+- [[dot-test_vector_search_records_telemetry_in_tracer()]] - `calls` [INFERRED]
+- [[dot-text_search()_1]] - `method` [EXTRACTED]
+- [[dot-vector_search()_1]] - `method` [EXTRACTED]
+- [[AdvancedRetriever]] - `uses` [INFERRED]
+- [[DocumentIngestionPipeline]] - `uses` [INFERRED]
+- [[HybridSearch]] - `uses` [INFERRED]
+- [[MongoDB client wrapper for semantic search operations.]] - `rationale_for` [EXTRACTED]
+- [[SemanticSearch]] - `uses` [INFERRED]
+- [[TestMongoDBClient]] - `uses` [INFERRED]
+- [[TestMongoDBClientTelemetry]] - `uses` [INFERRED]
+- [[TestMongoDBLiveIntegration]] - `uses` [INFERRED]
+- [[approval.py]] - `imports` [EXTRACTED]
+- [[audit.py]] - `imports` [EXTRACTED]
+- [[client.py]] - `contains` [EXTRACTED]
+- [[dependencies.py]] - `imports` [EXTRACTED]
+- [[devicesstore.py]] - `imports` [EXTRACTED]
+- [[get_admin_service()]] - `calls` [EXTRACTED]
+- [[get_approval_service()]] - `uses` [INFERRED]
+- [[get_audit_service()]] - `uses` [INFERRED]
+- [[get_device_service()]] - `uses` [INFERRED]
+- [[get_incident_service()]] - `uses` [INFERRED]
+- [[get_it_ticket_service()]] - `calls` [EXTRACTED]
+- [[get_mongo_client()]] - `calls` [EXTRACTED]
+- [[get_service_status_checker()]] - `uses` [INFERRED]
+- [[get_ticket_service()]] - `uses` [INFERRED]
+- [[get_user_service()]] - `uses` [INFERRED]
+- [[hybrid_search.py]] - `imports` [EXTRACTED]
+- [[incidentsstore.py]] - `imports` [EXTRACTED]
+- [[index_documents.py]] - `imports` [EXTRACTED]
+- [[index_documents_from_folder()]] - `uses` [INFERRED]
+- [[ingestionpipeline.py]] - `imports` [EXTRACTED]
+- [[main()]] - `calls` [EXTRACTED]
+- [[main()_1]] - `calls` [EXTRACTED]
+- [[main()_2]] - `calls` [EXTRACTED]
+- [[main()_3]] - `calls` [EXTRACTED]
+- [[mcp_rag_agentmongodb__init__.py]] - `imports` [EXTRACTED]
+- [[mcp_servertools.py]] - `imports` [EXTRACTED]
+- [[retrievalpipeline.py]] - `imports` [EXTRACTED]
+- [[seed_it_operations_data()]] - `uses` [INFERRED]
+- [[semantic_search.py]] - `imports` [EXTRACTED]
+- [[servicesstore.py]] - `imports` [EXTRACTED]
+- [[ticketsstore.py]] - `imports` [EXTRACTED]
+- [[usersstore.py]] - `imports` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/typing

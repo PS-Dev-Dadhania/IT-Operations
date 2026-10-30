@@ -1,666 +1,863 @@
 # IT Operations & Support Copilot
 
-> **An enterprise-grade, agentic IT operations and support platform combining hybrid RAG (Dense Vector + Lexical BM25 with RRF), LangGraph orchestrations, stateful deterministic troubleshooting runbooks, Model Context Protocol (MCP) operations, zero-trust RBAC with human-in-the-loop approvals, and automated RAGAS evaluation.**
+> A portfolio-grade enterprise support assistant that combines grounded policy Q&A, hybrid Retrieval-Augmented Generation (RAG), optional MCP-based IT operations, stateful troubleshooting runbooks, ticket workflows, and evaluation tooling.
 
-[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
-[![Tests: 340 Passed](https://img.shields.io/badge/tests-340%20passed-brightgreen.svg)](tests/unit_tests/)
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol-6B5CE7)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
----
+This README is intentionally implementation-led. It describes the current source tree, runtime paths, feature flags, data contracts, and measured evaluation artifact in this repository. It does not treat design documents or future deployment notes as proof that an integration is active.
 
-## Table of Contents
+## Contents
 
-- [1. Problem Statement](#1-problem-statement)
-- [2. Solution Overview](#2-solution-overview)
-- [3. Key Architectural Capabilities](#3-key-architectural-capabilities)
-- [4. System Architecture](#4-system-architecture)
-- [5. End-to-End Request Workflow](#5-end-to-end-request-workflow)
-- [6. Real-World Troubleshooting Scenario](#6-real-world-troubleshooting-scenario)
-- [7. Hybrid RAG Retrieval Pipeline](#7-hybrid-rag-retrieval-pipeline)
-- [8. Reciprocal Rank Fusion (RRF)](#8-reciprocal-rank-fusion-rrf)
-- [9. Agent Orchestration Layer](#9-agent-orchestration-layer)
-- [10. Stateful Runbook Engine](#10-stateful-runbook-engine)
-- [11. MCP Operations Tool Layer](#11-mcp-operations-tool-layer)
-- [12. Ticketing & ITSM Lifecycle](#12-ticketing--itsm-lifecycle)
-- [13. Security, RBAC & HITL Approvals](#13-security-rbac--hitl-approvals)
-- [14. Layered Guardrails](#14-layered-guardrails)
-- [15. Persistent Conversation Memory](#15-persistent-conversation-memory)
-- [16. Evaluation & Regression Detection](#16-evaluation--regression-detection)
-- [17. Data-Driven Benchmark Results](#17-data-driven-benchmark-results)
-- [18. Technology Stack](#18-technology-stack)
-- [19. Repository Structure](#19-repository-structure)
-- [20. API Reference](#20-api-reference)
-- [21. Local Setup & Quickstart](#21-local-setup--quickstart)
-- [22. Testing & Quality Assurance](#22-testing--quality-assurance)
-- [23. Engineering Decisions](#23-engineering-decisions)
-- [24. STAR Project Summary](#24-star-project-summary)
-- [25. Technical Highlights & Limitations](#25-technical-highlights--limitations)
+- [What the project does](#what-the-project-does)
+- [Architecture at a glance](#architecture-at-a-glance)
+- [The RAG implementation](#the-rag-implementation)
+- [The MCP implementation](#the-mcp-implementation)
+  - [MCP Interconnection Topology & Multi-Tool Workflow](#mcp-interconnection-topology--multi-tool-workflow)
+- [End-to-end request workflow](#end-to-end-request-workflow)
+- [IT operations and runbooks](#it-operations-and-runbooks)
+- [Security and guardrails](#security-and-guardrails)
+- [Evaluation and observability](#evaluation-and-observability)
+- [Current project structure](#current-project-structure)
+- [Local setup](#local-setup)
+- [API surface](#api-surface)
+- [Interview-ready design decisions](#interview-ready-design-decisions)
+- [Known boundaries](#known-boundaries)
 
----
+## What the project does
 
-## 1. Problem Statement
+The system is designed for two related support scenarios:
 
-Modern enterprise IT support faces compounding operational bottlenecks:
-- **Repetitive Tier 1 Inquiries:** High volume of routine requests (VPN setup, Wi-Fi 802.1X certificates, MFA synchronization, password resets, hardware diagnostics) consume engineering bandwidth.
-- **Fragmented Knowledge Silos:** Internal runbooks, company security policies, and incident wikis are scattered across multiple repositories, leading to inconsistent troubleshooting.
-- **LLM Hallucinations & Lack of Process Rigor:** Pure generative chatbots risk inventing diagnostic steps, skipping mandatory validation protocols, or executing unsafe system modifications.
-- **Security & Authorization Risks:** Autonomous AI tools operating without strict role boundaries or human approval mechanisms create privilege escalation and data exposure vulnerabilities.
-- **Operational Blind Spots:** Lack of structured evaluation across multi-step agent decisions makes it difficult to measure diagnostic accuracy versus superficial text fluency.
+1. **Policy questions** — answer questions about internal policies using retrieved document evidence and source citations.
+2. **IT support workflows** — when enabled, expose typed operational tools for users, devices, service health, and tickets, plus deterministic troubleshooting runbooks.
 
----
+The key design principle is separation of responsibilities:
 
-## 2. Solution Overview
+| Responsibility | Current implementation |
+|---|---|
+| Natural-language reasoning | LangChain/LangGraph agent created by `create_agent(...)` |
+| Knowledge grounding | `AdvancedRetriever` using local vector cosine similarity + SQLite FTS5 BM25 lexical text search (or MongoDB Atlas) |
+| Tool boundary | Direct `StructuredTool` adapters or FastMCP tools, selected by a feature flag |
+| Deterministic procedures | `RunbookExecutor` and a compiled LangGraph state machine |
+| Persistence | Embedded SQLite storage (WAL mode), SQLite FTS5 BM25, NumPy vector engine, and LangGraph `SqliteSaver` (with MongoDB Atlas compatibility) |
+| Safety | Input validation, retrieved-content sanitization, access filtering, citation validation, grounding checks, and refusal decisions |
+| Evidence of quality | Unit/integration tests plus a versioned 105-case IT benchmark |
 
-The **IT Operations & Support Copilot** bridges the gap between semantic knowledge retrieval and deterministic enterprise execution. It acts as an intelligent first-line operational platform that:
+## Architecture at a glance
+
+![System architecture](docs/assets/architecture.svg)
+
+The primary application path is:
 
 ```mermaid
 flowchart LR
-    User([Employee Issue]) --> Router[Deterministic Intent Router]
-    Router --> Context[Operational Context & Service Outages]
-    Context --> RAG[Hybrid RAG Knowledge Retrieval]
-    RAG --> Engine[Stateful Troubleshooting Runbook]
-    Engine --> Tools[MCP Operations Tooling]
-    Tools --> Security{RBAC & HITL Gate}
-    Security -->|Authorized| Exec[Ticket / Incident Updates]
-    Security -->|High-Risk| Approval[Human Approval Queue]
-    Exec --> Audit[(Sanitized Audit Trail)]
+    U[Employee or operator] --> UI[Web UI or API client]
+    UI --> API[FastAPI /api/v1]
+    API --> CS[ChatService]
+    CS --> RUN[RAGAgentRunner]
+    RUN --> G[LangChain agent graph]
+    G -->|search_policy_documents| RET[Hybrid retriever]
+    G -->|optional IT tools| OPS[IT operations domain]
+    G -->|optional runbook tool| RB[RunbookExecutor]
+    RET --> DB[(MongoDB)]
+    OPS --> DB
+    RB --> CP[(Checkpoint saver)]
+    RET --> G
+    OPS --> G
+    RB --> G
+    G --> OUT[Guarded answer + sources + metadata]
+    OUT --> API
 ```
 
-1. **Classifies Intents Deterministically:** Maps natural language to canonical IT domains.
-2. **Grounds Responses in Verified Policies:** Retrieves relevant context using dense vector embeddings + lexical BM25 fused via Reciprocal Rank Fusion (RRF).
-3. **Executes Structured Troubleshooting:** Guides users through strict, stateful runbook graphs without skipping verification stages.
-4. **Performs Typed IT Operations:** Queries user identity, device inventory, service health, and manages ticket lifecycles via Model Context Protocol (MCP) tools.
-5. **Enforces Zero-Trust Security:** Restricts document retrieval and tool execution using an authoritative 5-role RBAC matrix, resource scoping, and Human-in-the-Loop (HITL) gates.
+Cross-cutting concerns—configuration, correlation IDs, structured logging, secret masking, authorization, audit events, and LangSmith integration—are implemented around these components rather than inside the LLM prompt alone.
 
----
+### Runtime modes
 
-## 3. Key Architectural Capabilities
-
-| Dimension | Implementation Details |
-|---|---|
-| **Hybrid RAG** | Dense semantic vectors (`text-embedding-3-small`) + Lexical BM25 full-text search combined via Reciprocal Rank Fusion ($k=60$). |
-| **Agent Orchestration** | LangGraph ReAct agent loop governed by structured COSTAR system prompt engineering and deterministic intent gates. |
-| **Stateful Runbooks** | 10 synthetic enterprise runbooks compiled into a deterministic LangGraph `STEP` $\rightarrow$ `EVALUATE` $\rightarrow$ `BRANCH` state machine. |
-| **MCP Tooling** | 5 typed operational tools (`get_user_context`, `get_device_info`, `check_service_status`, `create_ticket`, `update_ticket`) supporting FastMCP and direct modes. |
-| **Security & RBAC** | 5 strongly typed enterprise roles (`EMPLOYEE`, `IT_SUPPORT`, `SECURITY_ANALYST`, `IT_ADMIN`, `SYSTEM_ADMIN`), 17 permissions, cross-user isolation, and pre-retrieval access filtering. |
-| **HITL Approvals** | 4 risk tiers (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`) with strict separation of duties (agents/requesters cannot approve own actions). |
-| **Ticketing & ITSM** | State machine lifecycle (`NEW` $\rightarrow$ `OPEN` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `WAITING_FOR_USER` $\rightarrow$ `RESOLVED` $\rightarrow$ `CLOSED` \| `ESCALATED`) with duplicate prevention. |
-| **Persistent Memory** | MongoDB Atlas checkpointer (`MongoDBSaver`) preserving multi-turn context and runbook state across process restarts. |
-| **Automated Evaluation** | 105-scenario IT benchmark (`v1_it_support_benchmark.json`), 12 IT-specific metrics, and zero-cherry-picking regression reporting. |
-| **Operations Console** | Role-aware web console with Active Runbook Step Tracker, Admin KPI Dashboard, Support Ticket Queue, Incident Monitor, and Audit Inspector. |
-
----
-
-## 4. System Architecture
+The same typed tool handlers support two execution modes:
 
 ```mermaid
 flowchart TD
-    subgraph Client["Presentation & Client Layer"]
-        UI_User["Employee Chat UI"]
-        UI_Step["Runbook Step Tracker Widget"]
-        UI_Admin["Admin Operations Dashboard"]
-    end
-
-    subgraph Gateway["FastAPI REST & Security Gateway"]
-        API["FastAPI App (/api/v1/*)"]
-        RBAC["RBAC & Authorization Guard"]
-        AuditSvc["Sanitized Audit Service"]
-    end
-
-    subgraph Agent["LangGraph Orchestration Core"]
-        Router["Deterministic Intent Classifier"]
-        ReAct["ReAct Reasoning Loop"]
-        COSTAR["COSTAR Grounding Prompt"]
-    end
-
-    subgraph Execution["Domain Subsystems"]
-        RAG["Hybrid RAG (Vector + BM25 + RRF)"]
-        Runbook["Stateful Runbook Graph Engine"]
-        MCP["FastMCP / Direct Operational Tools"]
-    end
-
-    subgraph Storage["MongoDB Atlas Cluster"]
-        DB_Vec[("Vector & Full-Text Search")]
-        DB_Mem[("Checkpointer (MongoDBSaver)")]
-        DB_Ops[("Tickets, Incidents, Users, Audit")]
-    end
-
-    Client --> Gateway
-    Gateway --> Agent
-    Agent --> Execution
-    Execution --> Storage
-    RBAC -.-> Gateway
-    AuditSvc -.-> DB_Ops
+    F[create_rag_agent_instance] --> C{FEATURE_FLAG_MCPSERVER_ENABLED?}
+    C -->|false - default| D[Direct mode]
+    D --> ST[LangChain StructuredTool adapters]
+    ST --> H[Shared typed handlers]
+    C -->|true| M[MCP mode]
+    M --> CLIENT[MultiServerMCPClient]
+    CLIENT -->|stdio: python -m mcp_rag_agent.mcp_server.server| SERVER[FastMCP server]
+    CLIENT -->|sse: configured MCP_SERVER_URL| SERVER
+    SERVER --> H
+    H --> DATA[(Retriever and IT domain services)]
 ```
 
-*(Vector diagram available at [`docs/assets/architecture.svg`](docs/assets/architecture.svg))*
+The default configuration is deliberately conservative: MCP mode is off, IT support is off, session memory and guardrails are on, and the default reranker is `none`.
 
----
+## The RAG implementation
 
-## 5. End-to-End Request Workflow
+RAG is implemented as a complete ingestion → retrieval → synthesis → verification pipeline, not as a single vector lookup.
+
+### 1. Ingestion and indexing
+
+`DocumentIngestionPipeline` performs the following steps:
+
+```mermaid
+flowchart LR
+    Files[TXT / Markdown / PDF / DOCX] --> Parse[ParserRegistry]
+    Parse --> Clean[DocumentCleaner]
+    Clean --> Chunk[Structure-aware chunker]
+    Chunk --> Hash[SHA-256 deduplication]
+    Chunk --> Embed[EmbeddingGenerator]
+    Embed --> V[(MongoDB vectors collection)]
+    Hash --> Parent[(MongoDB documents collection)]
+    Chunk --> Parent
+```
+
+- The parser registry supports `.txt`, `.md`, `.pdf`, and `.docx`.
+- Text is normalized with Unicode NFKC normalization, control-character removal, whitespace cleanup, and paragraph preservation.
+- The default chunk configuration is **500 characters** with **50 characters of overlap**.
+- Chunks retain document ID, filename, title, section, page number, source path, chunk index, content hash, and ingestion timestamp.
+- SHA-256 hashes make ingestion incremental and allow unchanged documents to be skipped.
+- Parent metadata is stored in the configured documents collection; embedded chunks are stored separately in the configured vectors collection.
+- `index_documents.py` creates or verifies the vector and text indexes before ingestion.
+
+Relevant source: [`src/mcp_rag_agent/ingestion/`](src/mcp_rag_agent/ingestion/), [`src/mcp_rag_agent/embeddings/index_documents.py`](src/mcp_rag_agent/embeddings/index_documents.py).
+
+### 2. Query preprocessing
+
+`QueryPreprocessor` creates two safe representations of the same user query:
+
+- `semantic_query` — normalized text for embedding generation.
+- `keyword_query` — normalized text with unbalanced quotes removed and leading hyphens stripped so MongoDB text syntax is not accidentally abused.
+
+Normalization includes Unicode NFKC conversion, smart-quote normalization, control-character removal, whitespace compaction, and tokenization.
+
+### 3. Parallel hybrid retrieval
+
+`AdvancedRetriever.retrieve(...)` executes the retrieval stages below:
+
+```mermaid
+flowchart TD
+    Q[User query] --> P[Normalize and sanitize]
+    P --> VQ[Generate query embedding]
+    P --> KQ[Build keyword query]
+    VQ --> VS[MongoDB vector search]
+    KQ --> KS[MongoDB text search]
+    VS --> F[RRF fusion + deduplication]
+    KS --> F
+    F --> R{Configured reranker}
+    R --> TOP[Top-k RetrievedChunk objects]
+    TOP --> AUTH[Access filter and content sanitization]
+    AUTH --> LLM[Agent context]
+```
+
+Important implementation details:
+
+- Vector and keyword searches run in parallel.
+- Candidate retrieval over-fetches by `retrieval_oversample_factor` (default `3`) before fusion.
+- The default semantic weight is `0.7`; keyword weight is `1 - semantic_weight`, therefore `0.3` by default.
+- Reciprocal Rank Fusion uses `retrieval_rrf_k=60` by default:
+
+  ```text
+  fusion_score(d) = semantic_weight / (60 + vector_rank)
+                  + keyword_weight  / (60 + keyword_rank)
+  ```
+
+- Results are deduplicated by chunk identity and sorted by fusion score.
+- The default `NoOpReranker` preserves the fused ordering. Optional `CrossEncoderReranker` and `LLMReranker` implementations are available behind `RETRIEVAL_RERANKER_TYPE`.
+- The default final result is `retrieval_top_k=3` chunks.
+- Debug mode records candidate ranks, scores, previews, fusion candidates, final chunks, and per-stage latency without exposing chain-of-thought.
+
+This combination is useful because semantic search handles conceptual similarity while lexical search preserves exact identifiers such as ticket IDs, error codes, product names, and protocol terms. RRF combines rankings without pretending that cosine similarity and text-search scores are calibrated on the same scale.
+
+### 4. Grounded synthesis and provenance
+
+The typed `search_policy_documents` handler returns structured output containing status, chunks, document IDs, fusion scores, ranks, metadata, latency, and an error message when appropriate. `RAGAgentRunner` then:
+
+1. extracts retrieved document IDs and chunks from tool messages;
+2. extracts citations from the model's `Reference:` or `References:` section;
+3. checks for empty, low-confidence, or error retrieval results;
+4. validates that cited documents actually exist in the retrieved set;
+5. computes a lexical/numeric grounding score against retrieved context; and
+6. replaces unsupported answers with a grounded refusal when necessary.
+
+The four decision categories are:
+
+| Decision | Meaning |
+|---|---|
+| `SUPPORTED_BY_EVIDENCE` | Retrieved evidence and answer grounding pass validation |
+| `INSUFFICIENT_EVIDENCE` | Retrieval is empty/weak or answer grounding is below threshold |
+| `OUT_OF_DOMAIN` | Input is outside the policy/IT support scope or contains a blocked injection pattern |
+| `SYSTEM_FAILURE` | Agent, retrieval, database, or model execution failed |
+
+The MCP server also exposes `grounded_qa_prompt`, which instructs a connected model to answer only from `search_policy_documents`, cite retrieved documents, and explicitly acknowledge missing information.
+
+## The MCP implementation
+
+### What MCP means in this project
+
+The Model Context Protocol is used as a standardized tool and prompt boundary between the reasoning agent and operational capabilities. The agent does not directly manipulate MongoDB collections or domain models through free-form code. It receives typed tool definitions and calls named capabilities with validated arguments.
+
+```mermaid
+sequenceDiagram
+    participant Agent as Agent graph
+    participant Client as MultiServerMCPClient
+    participant Server as FastMCP server
+    participant Handler as Typed handler
+    participant Domain as Domain service / retriever
+    participant DB as MongoDB
+
+    Agent->>Client: Discover tools and grounded_qa_prompt
+    Client->>Server: initialize + list_tools/list_prompts
+    Server-->>Client: Typed tool schemas and prompt
+    Client-->>Agent: LangChain-compatible tools
+    Agent->>Client: call search_policy_documents(query, top_k)
+    Client->>Server: JSON-RPC tool call
+    Server->>Handler: Pydantic input model
+    Handler->>Domain: retrieve / query / mutate
+    Domain->>DB: Search or persistence operation
+    DB-->>Domain: Results
+    Domain-->>Handler: Typed output model
+    Handler-->>Server: Sanitized tool string
+    Server-->>Client: Tool result
+    Client-->>Agent: Observation for grounded synthesis
+```
+
+### MCP server surface
+
+The FastMCP server in [`src/mcp_rag_agent/mcp_server/server.py`](src/mcp_rag_agent/mcp_server/server.py) registers:
+
+| MCP capability | Purpose | Backing implementation |
+|---|---|---|
+| `search_policy_documents` | Hybrid policy retrieval | `AdvancedRetriever` |
+| `search_documents` | Backward-compatible retrieval alias | Delegates to `search_policy_documents` |
+| `get_user_context` | User role, department, tier, account context | User service/store |
+| `get_device_info` | Device, OS, client version, compliance data | Device service/store |
+| `check_service_status` | Service health and known-incident correlation | `ServiceStatusChecker` |
+| `create_ticket` | Create a ticket or return an unresolved duplicate | `TicketService` |
+| `update_ticket` | Transition status, assign team, or add a comment | `TicketService` |
+| `grounded_qa_prompt` | Server-provided grounding instructions | `@mcp.prompt()` |
+
+The five operational tools are not merely strings in the prompt. Their inputs and outputs are Pydantic models in [`src/mcp_rag_agent/agent/models.py`](src/mcp_rag_agent/agent/models.py), and both direct and MCP modes call the same typed handler functions in [`src/mcp_rag_agent/mcp_server/tools.py`](src/mcp_rag_agent/mcp_server/tools.py).
+
+### MCP transport and lifecycle
+
+- **stdio**: the agent launches `python -m mcp_rag_agent.mcp_server.server` as a subprocess. This is the default transport.
+- **SSE**: the agent connects to `MCP_SERVER_URL`, or derives a URL from `MCP_SERVER_HOST` and `MCP_SERVER_PORT`.
+- The client discovers tools with `MultiServerMCPClient.get_tools(...)`.
+- The client loads `grounded_qa_prompt` once through an MCP session and appends it to the configured system prompt.
+- The MCP server uses short-lived sessions for tool discovery/calls through the adapter; domain clients and service instances are lazily cached in the tool module.
+
+### Why the dual-mode design matters
+
+Direct mode is useful for unit tests, local debugging, and environments where a separate process is unnecessary. MCP mode proves that the same capabilities can be exposed through a protocol boundary without rewriting the agent's domain logic. The shared typed handler layer is the parity mechanism: the transport changes, but retrieval, authorization, masking, and domain behavior remain centralized.
+
+### MCP Interconnection Topology & Multi-Tool Workflow
+
+In enterprise IT support, tools are **not isolated silos**. Answering a user query or resolving an infrastructure issue requires chaining identity verification, asset diagnosis, infrastructure telemetry, knowledge base grounding, and transactional ticketing.
+
+The diagram below details how all Model Context Protocol capabilities connect with one another, showing how context, identifiers, and telemetry flow through the agent:
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["1. Client & Protocol Governance Layer"]
+        Agent["LangGraph ReAct Agent Graph"]
+        Prompt["grounded_qa_prompt<br/>(Grounding System Prompt Template)"]
+        Prompt -.->|Enforces Citations & Anti-Hallucination| Agent
+    end
+
+    subgraph ToolMesh["2. MCP Cooperative Tool Mesh"]
+        direction TB
+
+        subgraph IdentityAsset["Identity & Asset Discovery"]
+            T_User["get_user_context<br/>(user_id)"]
+            T_Device["get_device_info<br/>(user_id, device_id)"]
+            T_User -->|"user_id (Resolves Assigned Hardware)"| T_Device
+        end
+
+        subgraph InfraTelemetry["Infrastructure & Outage Telemetry"]
+            T_Service["check_service_status<br/>(service_name)"]
+            Store_Incidents[("Active Incidents Store<br/>(it_incidents)")]
+            T_Service <-->|"Cross-References Known Outages"| Store_Incidents
+        end
+
+        subgraph KnowledgeGrounding["Knowledge Grounding & Runbooks"]
+            T_Search["search_policy_documents<br/>(query, top_k, filter)"]
+            Engine_RAG[("Hybrid RAG Engine<br/>Vector Cosine + FTS5 BM25")]
+            T_Search <-->|"Retrieves Policies & SOPs"| Engine_RAG
+        end
+
+        subgraph ActionTicketing["Action & Lifecycle Management"]
+            T_CreateTicket["create_ticket<br/>(title, desc, cat, prio, user, platform)"]
+            T_UpdateTicket["update_ticket<br/>(ticket_id, status, comment, team)"]
+            T_CreateTicket -->|"ticket_id (Tracks Lifecycle)"| T_UpdateTicket
+        end
+    end
+
+    subgraph SharedStorage["3. Unified Persistence Layer (Local SQLite / WAL)"]
+        DB_Users[("col_it_users")]
+        DB_Devices[("col_it_devices")]
+        DB_Services[("col_it_service_statuses")]
+        DB_Tickets[("col_it_tickets")]
+        DB_Audit[("col_it_audit_logs")]
+    end
+
+    %% Agent Invocation & Tool Chaining
+    Agent <===>|"Discovers & Dispatches Tools via FastMCP"| ToolMesh
+    
+    %% Inter-Tool Data Pipelines
+    T_User -->|"requester_id + support_tier (VIP Routing)"| T_CreateTicket
+    T_Device -->|"OS platform, client versions & specs"| T_CreateTicket
+    T_Service -->|"outage status, error codes & incident_id"| T_CreateTicket
+    T_Search -->|"remediation steps & category taxonomy"| T_CreateTicket
+    T_Device -.->|"Client Compatibility Checks"| T_Service
+
+    %% Persistence Bindings
+    T_User -.-> DB_Users
+    T_Device -.-> DB_Devices
+    T_Service -.-> DB_Services
+    T_CreateTicket -.-> DB_Tickets
+    T_UpdateTicket -.-> DB_Tickets
+    ToolMesh -.->|"Emits Correlation IDs (req_id, th_id)"| DB_Audit
+```
+
+#### Multi-Tool Data Handoff & Interconnection Matrix
+
+The following table summarizes how outputs from upstream MCP tools become inputs and enriched context for downstream tools:
+
+| Source MCP Tool | Connected Target Tool | Shared Context & Payload | Operational Value |
+|---|---|---|---|
+| `get_user_context` | `get_device_info` | `user_id` | Automatically discovers all assigned laptops, workstations, and mobile devices without requiring the employee to look up serial numbers or asset tags. |
+| `get_user_context` | `create_ticket` | `user_id`, `support_tier`, `department` | Populates verified requester identity and automatically routes tickets with elevated priority for VIP personnel or critical business units. |
+| `get_device_info` | `check_service_status` | Device OS, Client Agent Version (e.g. `VPN Client 5.1.2`) | Cross-references installed software versions against known service outage bugs or platform compatibility advisories. |
+| `get_device_info` | `create_ticket` | `platform` (OS), `product` (hardware model), compliance state | Injects technical environment metadata into the ticket record for Level-2 IT engineering triage. |
+| `check_service_status` | `create_ticket` | `service_name`, `error_code`, active `incident_id` | Associates individual user tickets with overarching enterprise incidents (e.g. `INC-VPN-02`), preventing ticket sprawl and enabling bulk resolution. |
+| `search_policy_documents` | `create_ticket` | Policy runbook steps, standard resolution SLAs | Categorizes problem domain (e.g. `network`, `access`, `hardware`) and identifies standard operating procedures to attach as initial work notes. |
+| `create_ticket` | `update_ticket` | `ticket_id` (e.g. `TKT-499C00B879`) | Manages ticket progression from `new` to `in_progress` to `resolved` as runbook steps are executed or escalated. |
+
+#### Real-World Chained Execution Sequence: End-to-End Troubleshooting
+
+When an employee asks *"My corporate VPN is failing to connect with gateway timeout error"*, the LangGraph agent orchestrates the MCP tools in a structured, multi-turn sequence:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Employee as Employee
-    participant API as FastAPI Gateway
-    participant Agent as LangGraph Agent
-    participant RAG as Hybrid RAG (RRF)
-    participant RB as Runbook Engine
-    participant MCP as MCP Tools
-    participant HITL as Human Approver
-    participant DB as MongoDB
+    actor User as Employee (Alice)
+    participant Agent as LangGraph ReAct Agent
+    participant MCP_User as MCP: get_user_context
+    participant MCP_Dev as MCP: get_device_info
+    participant MCP_Svc as MCP: check_service_status
+    participant MCP_KB as MCP: search_policy_documents
+    participant MCP_Tkt as MCP: create_ticket
+    participant DB as Local Database (SQLite / WAL)
 
-    Employee->>API: "My VPN connection is failing from home"
-    API->>Agent: Route query with UserContext (Role: EMPLOYEE)
-    Agent->>Agent: Classify Intent -> VPN_ISSUE
-    Agent->>MCP: check_service_status(service_name="corporate_vpn")
-    MCP-->>Agent: Status: OPERATIONAL (No global outage)
-    Agent->>RAG: Hybrid Search ("VPN troubleshooting certificate")
-    RAG-->>Agent: Top-3 Policy Chunks (Access Verified)
-    Agent->>RB: Start Runbook ("RB-NET-VPN-001")
-    RB-->>Agent: Step 1: Check Internet & Client Version
-    Agent-->>Employee: Response with Step Tracker Widget (Step 1/4)
-    Employee->>Agent: "Internet is working, client is up to date"
-    Agent->>RB: Evaluate Step 1 -> Outcome: SUCCESS -> Advance
-    RB-->>Agent: Step 2: Expired Certificate Renewal
-    Agent-->>Employee: Step 2 instructions & renewal link
+    User->>Agent: "My VPN connection failed with gateway timeout"
+    
+    rect rgb(240, 248, 255)
+    Note over Agent,MCP_User: Stage 1: Identity & Asset Discovery
+    Agent->>MCP_User: get_user_context(user_id="EMP-1001")
+    MCP_User->>DB: Query col_it_users
+    DB-->>MCP_User: {name: "Alice", tier: "standard", dept: "Engineering"}
+    MCP_User-->>Agent: [USER CONTEXT] Found active user record
+    
+    Agent->>MCP_Dev: get_device_info(user_id="EMP-1001")
+    MCP_Dev->>DB: Query col_it_devices
+    DB-->>MCP_Dev: {device_id: "DEV-001", OS: "macOS 14.3", vpn_client: "5.1.2"}
+    MCP_Dev-->>Agent: [DEVICE INFO] Found registered laptop DEV-001
+    end
+
+    rect rgb(255, 248, 240)
+    Note over Agent,MCP_Svc: Stage 2: Telemetry & Infrastructure Correlation
+    Agent->>MCP_Svc: check_service_status(service_name="corporate_vpn")
+    MCP_Svc->>DB: Query col_it_service_statuses & col_it_incidents
+    DB-->>MCP_Svc: {status: "degraded", incident_id: "INC-VPN-02"}
+    MCP_Svc-->>Agent: [SERVICE STATUS] Degraded gateway outage detected
+    end
+
+    rect rgb(245, 255, 245)
+    Note over Agent,MCP_KB: Stage 3: Grounded Knowledge Retrieval
+    Agent->>MCP_KB: search_policy_documents(query="VPN gateway timeout macOS")
+    MCP_KB->>DB: Hybrid Search (NumPy Cosine + FTS5 BM25)
+    DB-->>MCP_KB: Top-3 chunks: VPN Troubleshooting SOP & Backup Gateway config
+    MCP_KB-->>Agent: Grounded passages with citation IDs
+    end
+
+    rect rgb(255, 240, 245)
+    Note over Agent,MCP_Tkt: Stage 4: Deduplicated Ticket Creation
+    Agent->>MCP_Tkt: create_ticket(title="VPN Timeout", requester="EMP-1001", platform="macOS 14.3", incident="INC-VPN-02")
+    MCP_Tkt->>DB: Deduplication scan + Insert col_it_tickets
+    DB-->>MCP_Tkt: Persisted TKT-499C00B879
+    MCP_Tkt-->>Agent: [TICKET CREATED] TKT-499C00B879 (new, priority=high)
+    end
+
+    Agent-->>User: Grounded answer with backup gateway workaround + created ticket confirmation TKT-499C00B879
 ```
 
-*(Vector diagram available at [`docs/assets/workflow.svg`](docs/assets/workflow.svg))*
+## End-to-end request workflow
 
----
+![End-to-end workflow](docs/assets/workflow.svg)
 
-## 6. Real-World Troubleshooting Scenario
+For a policy question, the active request path is:
 
-### Step-by-Step VPN Diagnosis (`RB-NET-VPN-001`)
+1. `POST /api/v1/chat` reaches `ChatService`.
+2. `ChatService` obtains a shared `RAGAgentRunner`.
+3. `RAGAgentRunner` creates request/thread correlation context and runs input guardrails.
+4. The agent graph decides whether to call `search_policy_documents`.
+5. The direct adapter or MCP client invokes the same typed retrieval handler.
+6. The handler retrieves, sanitizes, applies subject-aware document filtering when a security subject exists, and returns formatted chunks.
+7. The agent synthesizes an answer from the tool result.
+8. The runner validates citations and grounding, masks sensitive output, records telemetry, and returns a structured response.
+9. `ChatService` deliberately exposes only the final answer, citations, sources, thread ID, request ID, and operational metadata—never tool arguments, internal graph state, or chain-of-thought.
 
-```text
-1. User Prompt:
-   "My Cisco AnyConnect VPN fails to connect with error 'Login Failed: Certificate Expired'."
+For an IT support request with `FEATURE_FLAG_IT_SUPPORT_ENABLED=true`, the agent also receives five operational tools and `execute_runbook_step`. The runbook tool can start a runbook, evaluate a step, report status, or list available runbooks.
 
-2. Intent & Context Resolution:
-   • Intent: VPN_ISSUE (Deterministic match)
-   • User: Jane Doe (Engineering, Role: EMPLOYEE)
-   • Device: DEV-MBP-401 (macOS 14.2, AnyConnect 4.10)
-   • Service Check: corporate_vpn -> OPERATIONAL (No active incidents)
+## IT operations and runbooks
 
-3. Runbook Initiation:
-   • Selected Runbook: RB-NET-VPN-001 ("Corporate VPN Connectivity Troubleshooting")
-   • Checkpointer: Session thread initialized in MongoDB
+### Operational domain
 
-4. Step Execution Flow:
-   • Step 1 (Network Verification): Verified local internet connectivity -> [SUCCESS]
-   • Step 2 (Certificate Validation): Identified expired user certificate -> [FAILURE PATH]
-   • Step 3 (Self-Service Renewal): Dispatched automated certificate provisioning workflow -> [SUCCESS]
-   • Step 4 (Reconnection Test): VPN tunnel established successfully -> [RESOLVED]
+The IT support package contains typed models, stores, services, tools, incidents, service status, tickets, and runbooks. The data stores support MongoDB-backed persistence and in-memory seeded records for local/offline behavior.
 
-5. Lifecycle Completion:
-   • Ticket Status: Automatically resolved without unnecessary tier-2 escalation.
-   • Audit Log: Diagnostic steps and tool calls recorded with sanitized payload.
-```
-
----
-
-## 7. Hybrid RAG Retrieval Pipeline
-
-The retrieval subsystem ensures grounded context synthesis without hallucinations by combining dense embeddings with lexical keyword matching:
-
-```mermaid
-flowchart TD
-    Q[Employee Query] --> Norm[Text Normalization]
-    Norm --> Emb[OpenAI text-embedding-3-small]
-    Norm --> BM25[Lexical BM25 / Text Search]
-    Emb --> VecIdx[(MongoDB Vector Index)]
-    BM25 --> TextIdx[(MongoDB Full-Text Index)]
-    VecIdx --> RRF[Reciprocal Rank Fusion k=60]
-    TextIdx --> RRF
-    RRF --> Dedup[Deduplication & Top-K Ranking]
-    Dedup --> Filter{Pre-Retrieval Access Filter}
-    Filter -->|Allowed| Context[Grounded Context Chunks]
-    Filter -->|Restricted| Drop[Dropped Before LLM]
-    Context --> LLM[COSTAR Prompt Grounding]
-```
-
-*(Vector diagram available at [`docs/assets/rag-pipeline.svg`](docs/assets/rag-pipeline.svg))*
-
----
-
-## 8. Reciprocal Rank Fusion (RRF)
-
-Dense semantic retrieval excel at conceptual similarity but can miss exact alphanumeric identifiers (e.g., error codes like `ERR-401-CERT`, protocol names, ticket IDs). Lexical search excels at exact keywords but lacks semantic understanding.
-
-We combine both rankings using **Reciprocal Rank Fusion (RRF)**:
-
-$$\text{RRF}(d) = \sum_{m \in M} \frac{w_m}{k + r_m(d)}$$
-
-Where:
-- $M = \{\text{vector}, \text{lexical}\}$
-- $k = 60$ (Standard smoothing constant preventing top-ranked dominance)
-- $w_{\text{vector}} = 1.0$, $w_{\text{lexical}} = 1.0$ (Equal default weighting)
-- $r_m(d)$ is the 1-based rank position of document $d$ in system $m$.
-
-**Why Rank Fusion Over Score Addition:**
-Raw cosine similarity scores $[0, 1]$ and BM25 scores $[0, \infty)$ have incompatible probability distributions. Normalizing and summing raw scores introduces calibration distortion; RRF provides scale-invariant, monotonic combination.
-
----
-
-## 9. Agent Orchestration Layer
-
-The copilot utilizes LangGraph to coordinate reasoning and deterministic tooling:
-
-- **COSTAR System Prompt:** Formulates context, objective, style, tone, audience, and response format constraints to prevent ungrounded generation.
-- **ReAct Execution Cycle:** The agent alternates between reasoning (`thought`), action (`tool invocation`), and observation (`tool output analysis`).
-- **Citation Enforcement:** Every factual statement regarding company policy must cite the exact source document name (e.g., `[1 - Remote Working.txt]`).
-- **Deterministic Boundary:** While the LLM synthesizes natural dialogue and extracts entities, runbook state transitions and ticket lifecycles are strictly governed by Python domain state machines.
-
----
-
-## 10. Stateful Runbook Engine
-
-The runbook engine implements 10 synthetic enterprise diagnostic graphs:
-
-| Runbook ID | Title | Category | Steps |
-|---|---|---|---|
-| `RB-NET-VPN-001` | Corporate VPN Connectivity Troubleshooting | Network | 4 |
-| `RB-NET-WIFI-002` | Office Wi-Fi 802.1X Authentication | Network | 4 |
-| `RB-ACC-MFA-003` | MFA Token Resynchronization & Push Failure | Access | 4 |
-| `RB-ACC-PWD-004` | Password Reset & Active Directory Unlock | Access | 4 |
-| `RB-ACC-GIT-005` | GitHub SSO & SSH Key Access Provisioning | Access | 3 |
-| `RB-ACC-JIR-006` | Jira Service Management Permissions | Access | 3 |
-| `RB-SFT-OUT-007` | Outlook Email & Calendar Sync Diagnostics | Software | 4 |
-| `RB-HDW-PRN-008` | Network Printer Connection & Badge Tap | Hardware | 4 |
-| `RB-HDW-DSP-009` | External Monitor & Docking Station Signal | Hardware | 3 |
-| `RB-SEC-PHS-010` | Phishing Email & Security Incident Triage | Security | 4 |
-
-```mermaid
-stateDiagram-v2
-    [*] --> START
-    START --> STEP_1: Initialize Runbook
-    STEP_1 --> EVALUATE_1: Execute Diagnostic
-    EVALUATE_1 --> STEP_2: Success (Next Step)
-    EVALUATE_1 --> STEP_1: Failure (Retry <= 2)
-    EVALUATE_1 --> ESCALATED: Unrecoverable Blocker
-    STEP_2 --> EVALUATE_2: Verify Action
-    EVALUATE_2 --> RESOLVED: Problem Fixed
-    EVALUATE_2 --> ESCALATED: Tier 2 Queue
-    RESOLVED --> [*]
-    ESCALATED --> [*]
-```
-
-*(Vector diagram available at [`docs/assets/runbook-flow.svg`](docs/assets/runbook-flow.svg))*
-
----
-
-## 11. MCP Operations Tool Layer
-
-The copilot integrates with enterprise IT services via the **Model Context Protocol (MCP)**:
-
-```mermaid
-flowchart LR
-    Agent[LangGraph Agent] --> Client[MCP Client Adapter]
-    Client --> Server[FastMCP Server]
-    Server --> T1[get_user_context]
-    Server --> T2[get_device_info]
-    Server --> T3[check_service_status]
-    Server --> T4[create_ticket]
-    Server --> T5[update_ticket]
-    T1 & T2 & T3 & T4 & T5 --> Mongo[(MongoDB Domain Stores)]
-```
-
-- **Dual Execution Modes:** Fully functional in Direct Mode (in-process LangChain StructuredTools) and FastMCP Server Mode (JSON-RPC over stdio / SSE).
-- **Sensitive Data Redaction:** Passwords, private session tokens, and connection strings are automatically scrubbed from tool returns and audit trails.
-
----
-
-## 12. Ticketing & ITSM Lifecycle
+The ticket state machine is deterministic:
 
 ```mermaid
 stateDiagram-v2
     [*] --> NEW
-    NEW --> OPEN: Agent Triage
-    OPEN --> IN_PROGRESS: Begin Diagnosis
-    IN_PROGRESS --> WAITING_FOR_USER: Awaiting Employee Response
-    WAITING_FOR_USER --> IN_PROGRESS: Employee Responds
-    IN_PROGRESS --> RESOLVED: Issue Fixed
-    RESOLVED --> CLOSED: Archived
-    OPEN --> ESCALATED: Complex Blocker
-    IN_PROGRESS --> ESCALATED: Escalated to Tier 2/3
+    NEW --> OPEN
+    OPEN --> IN_PROGRESS
+    OPEN --> ESCALATED
+    IN_PROGRESS --> WAITING_FOR_USER
+    WAITING_FOR_USER --> IN_PROGRESS
+    IN_PROGRESS --> RESOLVED
+    IN_PROGRESS --> ESCALATED
+    RESOLVED --> CLOSED
+    CLOSED --> [*]
+    ESCALATED --> [*]
 ```
 
-*(Vector diagram available at [`docs/assets/ticket-lifecycle.svg`](docs/assets/ticket-lifecycle.svg))*
+`TicketService.transition_status(...)` rejects illegal transitions with `InvalidTicketTransitionError`. Ticket creation checks for unresolved duplicates before inserting a new record.
 
-- **Duplicate Ticket Prevention:** Detects existing unresolved tickets matching user, title, and structured category to prevent queue flooding.
-- **Deterministic State Transitions:** State changes must follow the strict transition graph; invalid changes are rejected with `InvalidTicketTransitionError` (HTTP 422).
+### Runbook engine
 
----
-
-## 13. Security, RBAC & HITL Approvals
+The runbook subsystem is separate from free-form LLM reasoning. `RunbookRegistry` selects a matching runbook using deterministic intent rules and tags; `RunbookExecutor` compiles a LangGraph subgraph and persists execution state through a checkpointer.
 
 ```mermaid
 flowchart TD
-    Identity[User Identity & Role] --> Matrix{17-Permission Matrix}
-    Matrix -->|Authorized| Scope{Resource Scoping & Isolation}
-    Matrix -->|Denied| Deny[HTTP 403 Forbidden]
-    Scope --> Risk{Risk Tier Evaluation}
-    Risk -->|Low / Medium| AutoExec[Direct Safe Execution]
-    Risk -->|High / Critical| HITL[Human Approval Workflow]
-    HITL -->|Admin Approves| Exec[Execute Tool Operation]
-    HITL -->|Admin Rejects / Expired| Reject[Action Aborted]
-    AutoExec & Exec --> Audit[(MongoDB Sanitized Audit Log)]
+    START([start or resume]) --> STEP[Present current step]
+    STEP --> WAIT[Wait for user/action outcome]
+    WAIT --> EVAL[Evaluate structured outcome]
+    EVAL -->|success / branch| NEXT[Advance to next step]
+    EVAL -->|retry and attempts remain| STEP
+    EVAL -->|resolved| RES[Terminal: resolved]
+    EVAL -->|failure / escalation| ESC[Terminal: escalated]
+    NEXT --> STEP
 ```
 
-*(Vector diagram available at [`docs/assets/security-flow.svg`](docs/assets/security-flow.svg))*
+The allowed step outcomes are `success`, `failure`, `retry`, and `escalate`. Each step has explicit success, failure, escalation, branch, and maximum-retry targets. The LLM can choose when to use the tool and can communicate with the user, but it does not decide arbitrary state transitions.
 
-### Role-Based Access Matrix
+The registry currently defines ten standard synthetic runbooks:
 
-| Permission | EMPLOYEE | IT_SUPPORT | SECURITY_ANALYST | IT_ADMIN | SYSTEM_ADMIN |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `READ_PUBLIC_POLICY` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `READ_INTERNAL_POLICY` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `READ_CONFIDENTIAL_POLICY` | ✗ | ✗ | ✗ | ✓ | ✓ |
-| `READ_SECURITY_OPS_POLICY` | ✗ | ✗ | ✓ | ✗ | ✓ |
-| `QUERY_OWN_TICKETS` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `QUERY_ALL_TICKETS` | ✗ | ✓ | ✓ | ✓ | ✓ |
-| `CREATE_TICKET` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `UPDATE_TICKET` | ✗ | ✓ | ✓ | ✓ | ✓ |
-| `EXECUTE_RUNBOOK` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `VIEW_USER_CONTEXT_SELF` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `VIEW_USER_CONTEXT_OTHERS`| ✗ | ✓ | ✓ | ✓ | ✓ |
-| `VIEW_DEVICE_INFO_SELF` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `VIEW_DEVICE_INFO_OTHERS` | ✗ | ✓ | ✓ | ✓ | ✓ |
-| `CHECK_SERVICE_STATUS` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `APPROVE_HIGH_RISK_ACTION`| ✗ | ✗ | ✗ | ✓ | ✓ |
-| `VIEW_AUDIT_LOGS` | ✗ | ✗ | ✓ | ✓ | ✓ |
-| `MANAGE_SYSTEM_CONFIG` | ✗ | ✗ | ✗ | ✗ | ✓ |
-
----
-
-## 14. Layered Guardrails
-
-1. **Input Guardrails:** Regex and semantic pattern filters against prompt injection, jailbreak attempts, and command injection.
-2. **Context Guardrails:** Pre-retrieval document classification filtering preventing unauthorized access chunks from entering prompt memory.
-3. **Generation Guardrails:** Token length limits, negative response templates, and refusal formatting for out-of-domain queries (e.g., cooking recipes, poems).
-4. **Output Guardrails:** Post-generation regex filters preventing accidental exposure of internal system prompts, hidden chain-of-thought, or unverified claims.
-
----
-
-## 15. Persistent Conversation Memory
-
-- **Thread Isolation:** Each conversation is bound to a unique `thread_id` and isolated at the MongoDB database level.
-- **MongoDBSaver Checkpointer:** Agent states, intermediate tool outputs, and runbook step milestones are saved after every LangGraph node execution.
-- **Zero Interruption:** When services restart or container pods scale, users can resume ongoing troubleshooting sessions seamlessly.
-
----
-
-## 16. Evaluation & Regression Detection
-
-The system features an automated evaluation harness reading versioned benchmark datasets:
-
-```mermaid
-flowchart TD
-    Bench[v1_it_support_benchmark.json 105 Cases] --> Runner[Evaluation Runner]
-    Runner --> Offline[Deterministic Workflow Mode]
-    Runner --> Live[Full LLM / Retrieval Mode]
-    Offline & Live --> Metrics[Compute 12 IT Metrics + RAGAS Bundle]
-    Metrics --> Comp[Regression Comparator]
-    Comp --> Report[it_support_regression_report.md]
-    Comp --> Failures[9 Failure Categories Isolated]
-```
-
-### 9 Regressed Failure Categories Detected
-1. `RETRIEVAL_MISS`: Recall@3 < 0.50
-2. `WRONG_INTENT`: Misclassified user intent
-3. `WRONG_RUNBOOK`: Incorrect troubleshooting graph selected
-4. `WRONG_TOOL`: Missing required operational tools
-5. `WRONG_TICKET_TYPE`: Ticket category mismatch
-6. `WRONG_ESCALATION`: Missed or unnecessary human escalation
-7. `UNAUTHORIZED_ACTION`: Unapproved or privilege-violating execution
-8. `GROUNDING_FAILURE`: Faithfulness score < 0.70
-9. `LATENCY_BREACH`: Execution time > 5000 ms SLA
-
----
-
-## 17. Data-Driven Benchmark Results
-
-All metrics below are generated directly from the reproducible 105-case enterprise benchmark run ([`evaluation/results/it_support_run.json`](evaluation/results/it_support_run.json)):
-
-### IT Workflow & Agent Execution Quality
-![IT Workflow Metrics](docs/assets/it-workflow-metrics.svg)
-
-### Hybrid Retrieval & Policy Grounding
-![Retrieval Metrics](docs/assets/retrieval-metrics.svg)
-
-### Operational Latency Breakdown
-![Operational Metrics](docs/assets/operational-metrics.svg)
-
-### Verified Metric Summary Table
-
-| Category | Metric | Measured Value | SLA Target | Status |
-|---|---|:---:|:---:|:---:|
-| **IT Workflow** | Intent Classification Accuracy | **83.8%** | $\ge 80.0\%$ | 🟢 PASS |
-| **IT Workflow** | Runbook Selection Accuracy | **84.4%** | $\ge 80.0\%$ | 🟢 PASS |
-| **IT Workflow** | Runbook Completion Rate | **80.0%** | $\ge 75.0\%$ | 🟢 PASS |
-| **IT Workflow** | Ticket Creation Success Rate | **100.0%** | $\ge 95.0\%$ | 🟢 PASS |
-| **IT Workflow** | Escalation Accuracy | **100.0%** | $\ge 95.0\%$ | 🟢 PASS |
-| **Security** | RBAC / Unauthorized Action Blocking | **100.0%** | $100.0\%$ | 🟢 PASS |
-| **Retrieval** | Recall@3 (Ground Truth Policy Chunks) | **1.0000** | $\ge 0.80$ | 🟢 PASS |
-| **Retrieval** | Precision@3 | **0.7778** | $\ge 0.60$ | 🟢 PASS |
-| **Retrieval** | MRR (Mean Reciprocal Rank) | **1.0000** | $\ge 0.80$ | 🟢 PASS |
-| **Generation** | Faithfulness (Claim Grounding) | **0.9928** | $\ge 0.85$ | 🟢 PASS |
-| **Operational** | Average Total Latency | **135.7 ms** | $\le 5000\text{ ms}$ | 🟢 PASS |
-| **Operational** | Estimated Cost per Query | **$0.0008** | $\le \$0.01$ | 🟢 PASS |
-
----
-
-## 18. Technology Stack
-
-| Layer | Technology | Purpose |
+| Canonical ID | Internal ID | Area |
 |---|---|---|
-| **Language** | Python 3.10 / 3.11 / 3.12 | Core backend and evaluation engine |
-| **Agent Core** | LangGraph / LangChain | StateGraph orchestration, ReAct reasoning loop |
-| **Language Model** | OpenAI GPT-4o-mini / Anthropic | Grounded synthesis and entity extraction |
-| **Embeddings** | OpenAI `text-embedding-3-small` | 1536-dimensional dense vector embeddings |
-| **Database** | MongoDB Atlas | Vector Search, Full-Text Index, MongoDBSaver checkpointer |
-| **Protocol** | Model Context Protocol (FastMCP) | Standardized, typed operational tool layer |
-| **API** | FastAPI / Uvicorn | High-performance asynchronous REST gateway |
-| **Frontend** | Vanilla JS / CSS / HTML5 | Dark-mode console with live Runbook Step Tracker |
-| **Evaluation** | Custom Engine + RAGAS Bundle | 105-case reproducible synthetic benchmark harness |
-| **Containerization** | Docker / Docker Compose | Multi-stage production containers & orchestration |
+| `RB-NET-VPN-001` | `rb_vpn_troubleshooting` | VPN |
+| `RB-NET-WIFI-002` | `rb_wifi_troubleshooting` | Wi-Fi |
+| `RB-ACC-MFA-003` | `rb_mfa_troubleshooting` | MFA |
+| `RB-ACC-PWD-004` | `rb_password_lockout` | Password/account |
+| `RB-ACC-GIT-005` | `rb_github_access` | GitHub access |
+| `RB-ACC-JIR-006` | `rb_jira_access` | Jira access |
+| `RB-SFT-OUT-007` | `rb_outlook_troubleshooting` | Outlook |
+| `RB-HDW-PRN-008` | `rb_printer_troubleshooting` | Printers |
+| `RB-HDW-DSP-009` | `rb_laptop_display` | Displays/docks |
+| `RB-SEC-PHS-010` | `rb_phishing_incident` | Phishing/security |
 
----
+## Security and guardrails
 
-## 19. Repository Structure
+![Security flow](docs/assets/security-flow.svg)
+
+### Input and output safety
+
+`RAGGuardrails` implements a four-tier decision taxonomy and coordinates several checks:
+
+- **Input**: removes control characters, detects common prompt-injection/jailbreak patterns, and rejects clearly out-of-domain queries.
+- **Retrieved content**: `sanitize_document_text(...)` neutralizes indirect prompt-injection patterns inside retrieved chunks. The retrieval handler wraps the content in a typed result and applies document access filtering when an authenticated subject is present.
+- **Output**: validates references against the retrieved document set, computes lexical and numeric overlap with retrieved context, masks credentials/connection strings/emails, and enforces a grounded refusal for insufficient evidence.
+- **Context manager**: `RAGGuardrails.filter_context(...)` provides a reusable context-level filter for empty retrieval, confidence thresholds, conflict detection, sandboxing, and context-length truncation.
+
+The active `RAGAgentRunner` path calls `validate_input(...)` and `validate_output(...)`; the retrieval handler performs per-chunk sanitization and access filtering. This distinction matters when explaining which guardrail is active at which layer.
+
+### RBAC and resource scoping
+
+The authoritative RBAC model defines five roles and eighteen permissions:
+
+| Role | Typical scope |
+|---|---|
+| `EMPLOYEE` | Own tickets/devices/context, knowledge search, service status, ticket creation |
+| `IT_SUPPORT` | Broader ticket, user, device, incident, and escalation operations |
+| `SECURITY_ANALYST` | Security incidents, high-risk execution, audit visibility |
+| `IT_ADMIN` | Ticket/incident/knowledge management, approvals, audit visibility |
+| `SYSTEM_ADMIN` | Full operational and approval scope |
+
+Authorization is evaluated at multiple levels:
+
+1. role-to-permission checks;
+2. resource checks for tickets, users, and devices; and
+3. pre-synthesis document filtering by metadata access level (`public`, `internal`, `confidential`, `security_ops`, `admin_only`).
+
+The API demo boundary obtains a `SecuritySubject` from `X-User-ID`, `X-User-Role`, `X-User-Department`, and `X-User-Support-Tier` headers. Missing headers default to `anonymous_user` with the `employee` role. This is a test/demo identity boundary, not a replacement for a production identity provider.
+
+### Human approval model
+
+`RiskPolicy` classifies actions as low, medium, high, or critical. `ApprovalService` persists approval requests, requires an approver with `APPROVE_HIGH_RISK_ACTION`, enforces requester/approver separation of duties, expires requests after 24 hours by default, and transitions approved requests to `EXECUTED`.
+
+The approval service is implemented and covered by security tests, but the current `create_ticket_typed(...)` and `update_ticket_typed(...)` handlers do not automatically call `request_approval(...)`. Therefore, HITL is a reusable security domain capability in the current checkout, not an implicit gate around every existing MCP ticket operation.
+
+### Audit and secret handling
+
+Tool handlers and audit services redact API keys, bearer tokens, MongoDB connection strings, password assignments, and email addresses before logging or returning diagnostic details. Audit events include request IDs, user IDs, roles, actions, resources, authorization results, statuses, and sanitized details.
+
+## Evaluation and observability
+
+### Measured benchmark artifact
+
+The repository includes a 105-scenario IT benchmark in [`evaluation/datasets/v1_it_support_benchmark.json`](evaluation/datasets/v1_it_support_benchmark.json), supporting evaluation files in [`data/evaluation_documents/`](data/evaluation_documents/), and a recorded result in [`evaluation/results/it_support_run.json`](evaluation/results/it_support_run.json). The result is an offline artifact dated `2026-09-28`, not a claim about every future run.
+
+![IT workflow benchmark](docs/assets/it-workflow-metrics.svg)
+
+![Retrieval benchmark](docs/assets/retrieval-metrics.svg)
+
+![Operational latency](docs/assets/operational-metrics.svg)
+
+Selected values from that artifact:
+
+| Metric | Recorded value |
+|---|---:|
+| Intent accuracy | 83.81% |
+| Runbook selection accuracy | 84.38% |
+| Runbook completion rate | 80.00% |
+| Ticket creation success | 100.00% |
+| Unauthorized blocking rate | 100.00% |
+| Recall@1 / Recall@3 | 0.9714 / 1.0000 |
+| MRR | 1.0000 |
+| Faithfulness | 0.9928 |
+| Answer relevancy | 0.3438 |
+| Answer correctness | 0.3330 |
+| Retrieval / generation / total latency | 15.2 / 120.5 / 135.7 ms |
+
+The low recorded answer-relevancy and answer-correctness values are deliberately shown rather than hidden. They are useful signals for discussing benchmark design, offline fixtures, and the difference between retrieval quality and generation quality.
+
+### Observability
+
+`ObservabilityTracer` records:
+
+- request, thread, and optional user IDs;
+- retrieval query, retrieved chunk count, document IDs, and latency;
+- LLM model latency, input/output/total tokens, and estimated cost;
+- tool, retrieval, database, and LLM spans;
+- categorized errors (`RETRIEVAL_ERROR`, `MODEL_ERROR`, `MCP_ERROR`, `DATABASE_ERROR`, `VALIDATION_ERROR`, `GUARDRAIL_BLOCK`, `TIMEOUT`); and
+- final grounding/citation metadata.
+
+`contextvars` propagates correlation context across async boundaries. Optional LangSmith integration is configured through environment variables.
+
+### Test and quality coverage
+
+The repository currently contains 319 unit-test functions and 10 integration-test functions by static source count. The CI workflows define formatting/import checks, Flake8, a Python 3.10/3.11 unit-test matrix, API tests, Bandit, `pip-audit`, and a scheduled/live MongoDB integration suite. Run the tests locally before making a claim about pass counts for a particular commit.
+
+## Current project structure
+
+The following is the current high-value structure; generated caches and graph-analysis output are omitted from the conceptual tree.
 
 ```text
-IT-Operations-and-Support-Copilot/
+.
+├── .github/workflows/
+│   ├── ci.yml                         # lint, tests, package/build, security checks
+│   └── integration.yml                # scheduled/live MongoDB integration suite
 ├── data/
-│   ├── ingested_documents/policies/     # Markdown/Text company policies
-│   └── evaluation_documents/            # Baseline test documents
+│   ├── ingested_documents/            # policy corpus used for indexing
+│   └── evaluation_documents/          # benchmark support files
 ├── docs/
-│   ├── assets/                          # SVG architecture diagrams & charts
-│   ├── IT_EVALUATION.md                 # Complete evaluation reference guide
-│   ├── MCP_IT_OPERATIONS.md             # MCP tool specifications
-│   ├── RBAC_SECURITY_MODEL.md           # Security & authorization matrix
-│   └── STAR_STORY.md                    # Structured STAR project story
+│   ├── assets/                        # architecture, workflow, RAG, security, metric SVGs
+│   ├── MCP_IT_OPERATIONS.md           # MCP tool-layer design
+│   ├── RBAC_SECURITY_MODEL.md         # roles, permissions, resource isolation, approvals
+│   ├── IT_EVALUATION.md               # IT benchmark and metric guide
+│   ├── DEPLOYMENT.md                  # deployment notes
+│   ├── DEBUGGING_GUIDE.md             # tracing and failure diagnosis
+│   ├── PROJECT_STORY.md
+│   └── STAR_STORY.md
 ├── evaluation/
-│   ├── datasets/                        # v1_it_support_benchmark.json (105 cases)
-│   ├── metrics/                         # 12 IT metrics & RAGAS calculators
-│   ├── reports/                         # it_support_regression_report.md
-│   ├── results/                         # it_support_run.json / csv
-│   └── runners/                         # eval_runner.py & regression_comparator.py
+│   ├── datasets/                      # versioned policy and IT benchmarks
+│   ├── metrics/                       # retrieval, generation, operational, IT metrics
+│   ├── runners/                       # full and regression evaluation runners
+│   ├── reports/                       # generated/sample regression reports
+│   └── results/                       # recorded JSON/CSV evaluation artifacts
 ├── scripts/
-│   ├── generate_readme_charts.py        # Reproducible chart generator
-│   └── seed_it_operations_data.py       # Idempotent DB seeder
+│   ├── seed_it_operations_data.py
+│   ├── benchmark_retrieval.py
+│   ├── generate_readme_charts.py
+│   └── compare_memory_evaluation.py
 ├── src/mcp_rag_agent/
-│   ├── agent/                           # LangGraph agent & COSTAR prompts
-│   ├── api/                             # FastAPI routes, dependencies, static UI
-│   │   ├── routes/                      # chat.py, tickets.py, admin.py
-│   │   └── static/                      # app.js, index.html, styles.css
-│   ├── core/                            # Config, checkpointer, logging
-│   ├── embeddings/                      # Hybrid search & indexing pipeline
-│   ├── guardrails/                      # Layered input/output guardrails
-│   ├── it_support/                      # Tickets, Runbooks, Users, Devices, Services
-│   │   ├── runbooks/                    # 10 enterprise runbook graphs & registry
-│   │   └── tickets/                     # Ticket lifecycle service & store
-│   ├── mcp_server/                      # FastMCP server & typed tools
-│   └── security/                        # RBAC matrix, authorization, HITL, audit
-└── tests/
-    ├── unit_tests/                      # 340 offline unit & contract tests
-    └── integration_tests/               # External MongoDB / OpenAI integration tests
+│   ├── agent/
+│   │   ├── create_agent.py             # async factory; Direct vs MCP mode
+│   │   ├── runner.py                   # RAGAgentRunner and response verification
+│   │   ├── models.py                   # Pydantic tool/response contracts
+│   │   ├── prompts/                    # system and IT-support prompts
+│   │   └── utils/                      # direct/MCP agent creators
+│   ├── api/
+│   │   ├── app.py                      # FastAPI factory and lifecycle
+│   │   ├── routes/                     # chat, conversations, health, tickets, admin
+│   │   ├── services/                   # API/application services
+│   │   ├── schemas/                    # request/response models
+│   │   └── static/                     # Vanilla JS/HTML/CSS web UI
+│   ├── embeddings/
+│   │   ├── embedding_generator.py
+│   │   ├── index_documents.py
+│   │   ├── hybrid_search.py            # legacy/compatibility hybrid adapter
+│   │   └── semantic_search.py
+│   ├── ingestion/                      # parsers, cleaning, chunking, pipeline
+│   ├── retrieval/                      # preprocessing, AdvancedRetriever, rerankers
+│   ├── mcp_server/
+│   │   ├── server.py                   # FastMCP tools and grounded prompt
+│   │   └── tools.py                    # shared typed handlers and service wiring
+│   ├── it_support/
+│   │   ├── users/ devices/ services/ incidents/ tickets/
+│   │   └── runbooks/                   # registry, graph, executor, definitions, tool
+│   ├── security/                       # RBAC, authorization, approvals, audit
+│   ├── guardrails/                     # input/context/output grounding controls
+│   ├── mongodb/                        # MongoDB client and search/index helpers
+│   ├── observability/                  # tracer, context, models, LangSmith bridge
+│   └── core/                           # config, logging, checkpointer
+├── tests/
+│   ├── unit_tests/                     # domain, RAG, guardrail, MCP, API, security tests
+│   └── integration_tests/              # MongoDB, MCP, and API integration tests
+├── requirements.txt
+├── requirements_dev.txt
+├── setup.py
+├── start.cmd / start.sh
+└── .env.example
 ```
 
----
-
-## 20. API Reference
-
-### Core & Chat Endpoints
-- `POST /api/v1/chat`: Main agent conversation endpoint supporting multi-turn memory.
-- `GET /health` & `GET /ready`: Kubernetes-compatible health and readiness probes.
-
-### IT Support Operations
-- `POST /api/v1/it/tickets`: Create a support ticket (with automatic duplicate detection).
-- `GET /api/v1/it/tickets/{id}`: Retrieve ticket details and status history.
-- `PATCH /api/v1/it/tickets/{id}`: Transition lifecycle state or update assignment.
-
-### Administration & Operations Console (RBAC Protected)
-- `GET /api/v1/admin/tickets`: Searchable, filterable ticket queue (`IT_ADMIN`, `SYSTEM_ADMIN`).
-- `GET /api/v1/admin/incidents`: Active and historical service incident monitor.
-- `GET /api/v1/admin/metrics`: Aggregated operational KPIs (resolution times, AI resolutions).
-- `GET /api/v1/admin/evaluation`: Live benchmark scores and quality metrics.
-- `GET /api/v1/admin/audit`: Sanitized security audit log stream (`SECURITY_ANALYST`, `IT_ADMIN`).
-
----
-
-## 21. Local Setup & Quickstart
+## Local setup
 
 ### Prerequisites
-- Python 3.10+
-- MongoDB 6.0+ (Local or MongoDB Atlas cluster with Vector Index enabled)
-- OpenAI API Key
 
-### 1. Clone & Environment Setup
+- Python 3.10, 3.11, or 3.12
+- Local Database: **Self-contained SQLite storage** (zero external database daemon or cloud account required)
+- Optional: MongoDB Atlas (if remote cloud database synchronization is explicitly desired)
+- OpenAI API key for embeddings and live generation
+- Optional: LangSmith credentials for tracing
+
+### Install
+
 ```bash
-git clone https://github.com/dev11062004/IT-Operations-and-Support-Copilot.git
-cd IT-Operations-and-Support-Copilot
-
-# Create virtual environment
 python -m venv .venv
-# Windows PowerShell:
+
+# Windows PowerShell
 .\.venv\Scripts\Activate.ps1
-# Linux/macOS:
-source .venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Linux/macOS
+# source .venv/bin/activate
+
+python -m pip install --upgrade pip
 pip install -r requirements_dev.txt
+pip install -e .
 ```
 
-### 2. Configure Environment Variables
-Create a `.env` file from `.env.example`:
-```ini
-OPENAI_API_KEY=sk-...
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=mcp_rag_agent
-FEATURE_FLAG_IT_SUPPORT_ENABLED=true
+Copy `.env.example` to `.env`. For local operation, no database URI is needed:
+
+```dotenv
+# Local SQLite database path (default: ./data/local_storage.db)
+LOCAL_DB_PATH=./data/local_storage.db
+
+# OpenAI API credentials for embeddings and generation
+OPENAI_API_KEY=your_key_here
 ```
 
-### 3. Seed Sample Enterprise Data
+### Seed IT Operations Data (Optional)
+
+Populate local SQLite database with initial users, devices, and service statuses:
+
 ```bash
 python scripts/seed_it_operations_data.py
 ```
 
-### 4. Start the Application (Localhost)
-Run the application directly using Python or the provided Windows launcher:
+### Database Migration & Backup Tool
+
+Transfer data from MongoDB or export/import local SQLite data:
 
 ```bash
-# Windows launcher (starts backend and automatically opens your browser):
-start_app.bat
+# Export local SQLite database to JSON:
+python scripts/migrate_to_local_db.py --export-dir ./data/backup_export
 
-# Or launch via Uvicorn CLI:
-py -3.12 -m uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
+# Import JSON records into local SQLite:
+python scripts/migrate_to_local_db.py --import-dir ./data/backup_export
+
+# Optional: Migrate directly from live MongoDB into local SQLite:
+python scripts/migrate_to_local_db.py --mongo-uri "mongodb://localhost:27017" --mongo-db "mcp_rag_agent_db"
 ```
-Open your browser at **`http://localhost:8000`** (or `http://127.0.0.1:8000/ui`) to access the IT Operations & Support Copilot web console.
 
----
+### Index policy documents
 
-## 22. Testing & Quality Assurance
-
-The test suite runs completely offline with mocked external dependencies:
+Run from the repository root so the `src` package resolves correctly:
 
 ```bash
-# Run full offline unit test suite (340 tests)
-pytest tests/unit_tests -q
-
-# Run IT Support domain & evaluation tests
-pytest tests/unit_tests/it_support -v
-
-# Run Security, RBAC & HITL tests
-pytest tests/unit_tests/security -v
-
-# Code formatting & linting checks
-black --check src tests
-isort --profile black --check src tests
-flake8 src tests
-
-# Static security vulnerability analysis
-bandit -r src/ -ll
+python -m mcp_rag_agent.embeddings.index_documents
 ```
 
-### Verified Test Summary
-```text
-340 passed in 23.01s (100% pass rate)
-• Baseline RAG & Core Tests: 197
-• IT Domain Foundation: 27
-• Tickets & Incidents: 16
-• Runbook Engine: 17
-• MCP Operations Tooling: 28
-• Security, RBAC & HITL: 44
-• Admin API & Evaluation: 11
+Useful options:
+
+```bash
+python -m mcp_rag_agent.embeddings.index_documents --reindex
+python -m mcp_rag_agent.embeddings.index_documents --clear
+python -m mcp_rag_agent.embeddings.index_documents --folder ./data/ingested_documents --chunk-size 500 --chunk-overlap 50
 ```
 
----
+### Start the API and UI
 
-## 23. Engineering Decisions
+```bash
+uvicorn mcp_rag_agent.api.app:create_app --factory --host 127.0.0.1 --port 8000 --reload
+```
 
-| Decision | Why It Was Chosen | Alternative Rejected |
+Open:
+
+- UI: `http://127.0.0.1:8000/ui`
+- OpenAPI: `http://127.0.0.1:8000/docs`
+- Health: `http://127.0.0.1:8000/api/v1/health`
+- Readiness: `http://127.0.0.1:8000/api/v1/ready`
+
+### Enable optional modes
+
+```dotenv
+# Connect the agent through FastMCP instead of direct StructuredTools
+FEATURE_FLAG_MCPSERVER_ENABLED=true
+MCP_TRANSPORT=stdio
+
+# Add IT operations and runbook tools to the agent
+FEATURE_FLAG_IT_SUPPORT_ENABLED=true
+
+# Keep safety controls and persistent session memory enabled
+FEATURE_FLAG_GUARDRAILS_ENABLED=true
+FEATURE_FLAG_SESSION_MEMORY_ENABLED=true
+```
+
+Start the standalone server directly when testing MCP itself:
+
+```bash
+python -m mcp_rag_agent.mcp_server.server
+```
+
+### Test and evaluate
+
+```bash
+pytest tests/unit_tests -m "not integration" -v
+pytest tests/integration_tests -m integration -v
+
+python -m evaluation.runners.eval_runner \
+  --dataset evaluation/datasets/v1_it_support_benchmark.json \
+  --output evaluation/results/run_current.json \
+  --mode offline
+```
+
+For the complete evaluation matrix and regression comparison commands, see [`evaluation/README.md`](evaluation/README.md) and [`docs/IT_EVALUATION.md`](docs/IT_EVALUATION.md).
+
+## API surface
+
+All versioned routes are mounted under `/api/v1`.
+
+| Endpoint | Purpose | Notes |
 |---|---|---|
-| **Hybrid Search with RRF** | Combines semantic understanding with exact code/identifier matching without score calibration errors. | Pure vector search (misses exact tokens) or score summing (distorts probabilities). |
-| **Deterministic Runbooks** | Guarantees compliance, security protocols, and prevents AI hallucination during critical troubleshooting. | Free-form LLM planning (unpredictable, risky). |
-| **FastMCP Tool Layer** | Provides a standardized protocol for local and distributed tool exposure across microservices. | Proprietary custom RPC frameworks. |
-| **MongoDBSaver Checkpointer** | Provides native thread-isolated state persistence surviving process restarts. | In-memory only session state. |
-| **Separation of Duties HITL** | Prevents AI agents or unauthorized requesters from auto-approving destructive operations. | Automated heuristic self-approval. |
+| `POST /chat` | Conversational RAG request | Zero-CoT response contract |
+| `POST /conversations` | Create a conversation thread | Persistent when session memory is enabled |
+| `GET /conversations` | List tracked threads | UI sidebar support |
+| `GET /conversations/{thread_id}` | Read clean dialogue history | Tool traces are omitted |
+| `DELETE /conversations/{thread_id}` | Delete thread/checkpoint data | Delegated to `ConversationService` |
+| `GET /health` | Liveness probe | Does not require full dependency readiness |
+| `GET /ready` | Readiness probe | Checks configured dependencies/runner state |
+| `POST /it/tickets` | Create a ticket | Returns 404 while IT support flag is disabled |
+| `GET/PATCH /it/tickets/{ticket_id}` | Read or patch a ticket | Lifecycle transitions are validated |
+| `GET /admin/tickets` | Admin ticket queue | Requires `IT_ADMIN` or `SYSTEM_ADMIN` |
+| `GET /admin/tickets/{ticket_id}` | Admin ticket detail | Admin-only |
+| `GET /admin/incidents` | Incident list | Admin-only |
+| `GET /admin/metrics` | Operational KPIs | Admin-only |
+| `GET /admin/evaluation` | Benchmark summary | Admin-only |
+| `GET /admin/audit` | Sanitized audit stream | Requires `VIEW_AUDIT_LOGS` |
 
----
+Example chat request:
 
-## 24. STAR Project Summary
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "How many days of annual leave do employees receive?",
+    "thread_id": "demo-thread-001",
+    "user_id": "EMP-1001"
+  }'
+```
 
-- **Situation:** Enterprise IT departments face overwhelming Tier-1 ticket volumes, fragmented documentation, and high security risks when deploying autonomous AI tools.
-- **Task:** Build a production-grade, secure IT support platform combining semantic retrieval, stateful runbook diagnosis, typed ITSM operations, and verifiable multi-step evaluation.
-- **Action:** Engineered a hybrid RAG pipeline with RRF ($k=60$), a LangGraph agent orchestrating 10 deterministic troubleshooting runbooks, 5 MCP operations tools, a 5-role RBAC security matrix with HITL gates, and a 105-scenario evaluation suite.
-- **Result:** Achieved 100% test pass rate across 340 tests, 83.8% intent accuracy, 84.4% runbook selection accuracy, 100% ticket creation and escalation accuracy, 100% unauthorized action blocking, Recall@3 of 1.0000, and Faithfulness of 0.9928 with an average total latency of 135.7 ms.
+## Interview-ready design decisions
 
-*(For the detailed interview STAR narrative, see [`docs/STAR_STORY.md`](docs/STAR_STORY.md))*
+### Why hybrid retrieval instead of vector search alone?
 
----
+Vector search is strong at meaning but can miss exact identifiers. Lexical search is strong at exact terms but can miss paraphrases. The implementation runs both, fuses rankings with RRF, preserves both component scores, and makes reranking pluggable. This improves explainability and avoids adding incomparable raw scores directly.
 
-## 25. Technical Highlights & Limitations
+### Why put retrieval behind MCP?
 
-### What Makes This System Stand Out
-1. **Zero Hallucination Process Execution:** Diagnostic graphs cannot transition to non-existent nodes regardless of LLM output.
-2. **True Dual-Mode Tooling:** MCP tools execute identically across stdio FastMCP servers and local direct Python calls.
-3. **Transparent Regression Tracking:** The evaluation framework transparently classifies and reports all 9 failure modes without cherry-picking.
+The MCP boundary standardizes capability discovery and invocation. The agent sees a tool contract; the server owns validation, retrieval, authorization, masking, and database access. This reduces coupling between the reasoning layer and operational backends and allows the same server to be reused by another MCP-capable client.
 
-### Current Limitations & Future Roadmap
-- **Simulated Infrastructure Operations:** Actual destructive operations (e.g., AD password resets, device network isolations) are simulated against structured domain stores rather than live production Active Directory / MDM endpoints.
-- **Static Runbook Definitions:** Runbooks are currently registered via Python domain structures; future work includes dynamic YAML/JSON authoring via administrative UI.
-- **ITSM Connectors:** Future iterations can plug directly into live ServiceNow and Jira Service Management REST APIs via the MCP tool interface.
+### Why retain a direct mode?
 
----
+Direct mode makes unit tests and local development fast and deterministic. It also provides an integration-parity baseline: if direct and MCP modes call the same typed handlers, behavioral differences can be localized to transport/session wiring rather than duplicated business logic.
+
+### What is deterministic and what is probabilistic?
+
+| Probabilistic | Deterministic |
+|---|---|
+| LLM tool choice and natural-language synthesis | Query normalization and keyword sanitization |
+| Embedding similarity | RRF formula and candidate deduplication |
+| Optional LLM reranking | Runbook transitions and retry limits |
+| LLM-based evaluation metrics when enabled | Ticket lifecycle transitions and duplicate checks |
+| | RBAC/resource checks, citation existence checks, refusal rules, and audit sanitization |
+
+This is the central reliability story: use the model for language and planning, but keep state transitions, access decisions, provenance checks, and operational invariants in code.
+
+### How would I explain a failed answer?
+
+Start with `request_id` and `thread_id`, then inspect the trace in order:
+
+```text
+API request
+  → input guardrail decision
+  → agent/model span
+  → tool/MCP span
+  → retrieval candidates and fusion result
+  → retrieved documents and citations
+  → grounding score / final decision
+  → sanitized API response
+```
+
+The structured error taxonomy makes it possible to distinguish retrieval failure, model failure, MCP failure, database failure, guardrail blocking, validation failure, and timeout instead of treating every problem as “the chatbot was wrong.”
+
+## Known boundaries
+
+These points are worth addressing directly in an interview or before calling the repository production-ready:
+
+1. **Feature flags define the default runtime.** `FEATURE_FLAG_MCPSERVER_ENABLED=false` and `FEATURE_FLAG_IT_SUPPORT_ENABLED=false` by default, so a default local run exposes direct policy retrieval rather than the complete MCP/IT-support surface.
+2. **The identity boundary is intentionally lightweight.** API roles are derived from request headers and default to an employee subject; a real deployment should place a trusted identity provider and token validation in front of the API.
+3. **HITL is a reusable domain service, not an automatic ticket gate today.** Approval models and tests exist, but the current MCP ticket handlers do not call the approval service for ticket creation/update.
+4. **The web-search flag is reserved.** `FEATURE_FLAG_WEBSEARCH_ENABLED` exists in configuration, but no active web-search provider is implemented in the current source tree.
+5. **Deployment documentation and checkout need reconciliation.** `docs/DEPLOYMENT.md`, `.env.example`, and CI build-validation steps describe Docker Compose/container artifacts, but no Dockerfile or Compose manifest is present in this checkout. Treat container deployment as documentation intent until those artifacts are restored or the workflow is updated.
+6. **Offline benchmark metrics have scope.** The recorded 105-case artifact is valuable for regression discussion, but it is not a substitute for a live, representative enterprise corpus and production traffic evaluation.
+7. **Retrieval observability has two sources of truth.** The retriever records detailed stage timings and the typed tool returns retrieval latency, while `RAGAgentRunner` currently extracts document IDs/chunks from tool messages and does not parse a latency field from that transcript. Validate latency numbers against the tracer/tool logs when diagnosing a live request.
+
+## Further reading
+
+- [`docs/MCP_IT_OPERATIONS.md`](docs/MCP_IT_OPERATIONS.md) — MCP tool catalog, contracts, and runtime modes
+- [`docs/RBAC_SECURITY_MODEL.md`](docs/RBAC_SECURITY_MODEL.md) — RBAC, resource scoping, approvals, and audit design
+- [`docs/IT_EVALUATION.md`](docs/IT_EVALUATION.md) — benchmark schema, metrics, and evaluation commands
+- [`docs/DEBUGGING_GUIDE.md`](docs/DEBUGGING_GUIDE.md) — request correlation and failure diagnosis
+- [`src/mcp_rag_agent/agent/README.md`](src/mcp_rag_agent/agent/README.md) — agent construction and guardrail details
+- [`src/mcp_rag_agent/embeddings/README.md`](src/mcp_rag_agent/embeddings/README.md) — embedding and indexing details
+- [`src/mcp_rag_agent/mcp_server/README.md`](src/mcp_rag_agent/mcp_server/README.md) — FastMCP module guide
+- [`evaluation/README.md`](evaluation/README.md) — evaluation framework and regression reports
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is released under the MIT License. See [`setup.py`](setup.py) for the package metadata.

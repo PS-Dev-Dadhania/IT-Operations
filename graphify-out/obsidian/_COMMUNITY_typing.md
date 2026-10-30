@@ -1,0 +1,217 @@
+---
+type: community
+cohesion: 0.03
+members: 131
+---
+
+# typing
+
+**Cohesion:** 0.03 - loosely connected
+**Members:** 131 nodes
+
+## Members
+- [[dot-__init__()]] - code - src/mcp_rag_agent/embeddings/embedding_generator.py
+- [[dot-__init__()_1]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[dot-__init__()_2]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[dot-__init__()_3]] - code - src/mcp_rag_agent/ingestion/pipeline.py
+- [[dot-__init__()_4]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-collection_exists()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-connect()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-create_collection()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-create_text_search_index()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-create_vector_search_index()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-db()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-delete_documents()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-disconnect()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-find_documents()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-format()]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[dot-format()_1]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[dot-get_collection()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-index_document()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[dot-index_document()_1]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[dot-index_documents()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[dot-index_documents()_1]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[dot-insert_document()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-insert_documents()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-list_collections()]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[dot-search()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[dot-search()_1]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[dot-setup_index()]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[dot-setup_indexes()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[dot-text_search()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[dot-vector_search()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Any]] - code
+- [[Any_1]] - code
+- [[Check if a collection exists in the database. Args collection_name Name of…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Close MongoDB connection.]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Collection]] - code
+- [[Configure centralized application logging with correlation IDs and secret…]] - rationale - src/mcp_rag_agent/core/log_setup.py
+- [[CorrelationIdFilter]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[Create a full-text search index on a collection. This method creates a text…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Create a new collection in the database. Args collection_name Name of the…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Create a vector search index on a collection. Args collection_name Name of…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Create both vector and text search indexes for a collection. Args…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Create vector search index for a collection. Args collection_name Collection…]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Database]] - code
+- [[Delete documents matching a query. Args collection_name Name of the…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Embedding generation modules.]] - rationale - src/mcp_rag_agent/embeddings/__init__.py
+- [[Embedding generator using OpenAI or other providers.]] - rationale - src/mcp_rag_agent/embeddings/embedding_generator.py
+- [[EmbeddingGenerator]] - code - src/mcp_rag_agent/embeddings/embedding_generator.py
+- [[Establish connection to MongoDB.]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Find documents matching a query. Args collection_name Name of the collection.…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Generate embeddings using OpenAI or compatible APIs.]] - rationale - src/mcp_rag_agent/embeddings/embedding_generator.py
+- [[Get a collection by name. Args collection_name Name of the collection.…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Get the database instance.]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Human-readable console formatter with correlation ID tags.]] - rationale - src/mcp_rag_agent/core/log_setup.py
+- [[Hybrid search engine combining vector similarity and full-text search.]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Hybrid search functionality combining vector and text search for MongoDB.]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[HybridSearch]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Index a document for hybrid search. Args content Text content to index.…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Index a document for semantic search. Args content Text content to index.…]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Index multiple documents for hybrid search. Args documents List of documents…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Index multiple documents for semantic search. Args documents List of…]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Initialize MongoDB client. Args uri MongoDB connection URI. database_name…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Initialize embedding generator. Args api_key API key for the embedding…]] - rationale - src/mcp_rag_agent/embeddings/embedding_generator.py
+- [[Initialize hybrid search. Args mongo_client MongoDB client instance.…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Initialize ingestion pipeline. Args mongo_client Connected MongoDBClient…]] - rationale - src/mcp_rag_agent/ingestion/pipeline.py
+- [[Initialize semantic search. Args mongo_client MongoDB client instance.…]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Insert a document into a collection. Args collection_name Name of the…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Insert multiple documents into a collection. Args collection_name Name of the…]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Intelligent text chunking with structural awareness and metadata preservation.]] - rationale - src/mcp_rag_agent/ingestion/chunker.py
+- [[JSONLogFormatter]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[LangSmith tracing configuration and metadata injection.]] - rationale - src/mcp_rag_agent/observability/langsmith_integration.py
+- [[List all collections in the database. Returns List of collection names.]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[LogRecord]] - code
+- [[Logging filter that injects active request_id and thread_id from contextvars.]] - rationale - src/mcp_rag_agent/core/log_setup.py
+- [[Main function to demonstrate HybridSearch setup and usage.]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Main function to demonstrate SemanticSearch setup and usage.]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Main function to demonstrate list_collections method.]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[Main function to run production document indexing. Args clear_existing If…]] - rationale - src/mcp_rag_agent/embeddings/index_documents.py
+- [[MongoDB client wrapper for semantic search operations.]] - rationale - src/mcp_rag_agent/mongodb/client.py
+- [[MongoDBClient]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[Perform hybrid search combining vector and text search. Args query Search…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Perform semantic search. Args query Search query text. limit Maximum number…]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Perform text-only keyword search. Args query Search query text. limit…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Perform vector-only semantic search. Args query Search query text. limit…]] - rationale - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[Persistent conversation checkpointer for multi-turn session memory.]] - rationale - src/mcp_rag_agent/core/checkpointer.py
+- [[Production structured logging system with correlation IDs and automated secret…]] - rationale - src/mcp_rag_agent/core/log_setup.py
+- [[Production-grade document ingestion pipeline coordinating parsing, cleaning,…]] - rationale - src/mcp_rag_agent/ingestion/pipeline.py
+- [[Script and entry point for production-grade document ingestion into MongoDB.]] - rationale - src/mcp_rag_agent/embeddings/index_documents.py
+- [[Semantic search engine using MongoDB vector search.]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Semantic search functionality for MongoDB.]] - rationale - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[SemanticSearch]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[Structured JSON formatter for production log aggregators (ELK, CloudWatch,…]] - rationale - src/mcp_rag_agent/core/log_setup.py
+- [[Text sanitization and cleaning for document ingestion.]] - rationale - src/mcp_rag_agent/ingestion/cleaner.py
+- [[TextLogFormatter]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[asyncio_19]] - concept
+- [[checkpointer.py]] - code - src/mcp_rag_agent/core/checkpointer.py
+- [[chunker.py]] - code - src/mcp_rag_agent/ingestion/chunker.py
+- [[cleaner.py]] - code - src/mcp_rag_agent/ingestion/cleaner.py
+- [[client.py]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[config.py]] - code - src/mcp_rag_agent/core/config.py
+- [[dotenv]] - concept
+- [[embedding_generator.py]] - code - src/mcp_rag_agent/embeddings/embedding_generator.py
+- [[embeddings__init__.py]] - code - src/mcp_rag_agent/embeddings/__init__.py
+- [[hashlib]] - concept
+- [[hybrid_search.py]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[index_documents.py]] - code - src/mcp_rag_agent/embeddings/index_documents.py
+- [[ingestionpipeline.py]] - code - src/mcp_rag_agent/ingestion/pipeline.py
+- [[langchain_agents]] - concept
+- [[langchain_core_messages]] - concept
+- [[langchain_core_tools]] - concept
+- [[langchain_mcp_adapters_client]] - concept
+- [[langchain_mcp_adapters_prompts]] - concept
+- [[langchain_openai]] - concept
+- [[langchain_text_splitters]] - concept
+- [[langgraph_checkpoint_base]] - concept
+- [[langgraph_checkpoint_mongodb]] - concept
+- [[langsmith_integration.py]] - code - src/mcp_rag_agent/observability/langsmith_integration.py
+- [[log_setup.py]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[logging]] - concept
+- [[main()]] - code - src/mcp_rag_agent/embeddings/hybrid_search.py
+- [[main()_1]] - code - src/mcp_rag_agent/embeddings/index_documents.py
+- [[main()_2]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[main()_3]] - code - src/mcp_rag_agent/mongodb/client.py
+- [[mcp_rag_agent_creator.py]] - code - src/mcp_rag_agent/agent/utils/mcp_rag_agent_creator.py
+- [[openai]] - concept
+- [[os]] - concept
+- [[pydantic_settings]] - concept
+- [[pymongo]] - concept
+- [[rag_agent_creator.py]] - code - src/mcp_rag_agent/agent/utils/rag_agent_creator.py
+- [[semantic_search.py]] - code - src/mcp_rag_agent/embeddings/semantic_search.py
+- [[setup_logging()]] - code - src/mcp_rag_agent/core/log_setup.py
+- [[typing]] - concept
+
+## Live Query (requires Dataview plugin)
+
+```dataview
+TABLE source_file, type FROM #community/typing
+SORT file.name ASC
+```
+
+## Connections to other communities
+- 29 edges to [[_COMMUNITY_mcp_servertools.py]]
+- 28 edges to [[_COMMUNITY_ObservabilityTracer]]
+- 28 edges to [[_COMMUNITY_agentmodels.py]]
+- 16 edges to [[_COMMUNITY_ingestion__init__.py]]
+- 13 edges to [[_COMMUNITY_retrievalpipeline.py]]
+- 12 edges to [[_COMMUNITY_ConfigurationError]]
+- 10 edges to [[_COMMUNITY_Config]]
+- 10 edges to [[_COMMUNITY_datetime]]
+- 9 edges to [[_COMMUNITY_index_documents_from_folder]]
+- 9 edges to [[_COMMUNITY_ViolationType]]
+- 9 edges to [[_COMMUNITY_runbooks__init__.py]]
+- 8 edges to [[_COMMUNITY_dependencies.py]]
+- 8 edges to [[_COMMUNITY_audit.py]]
+- 8 edges to [[_COMMUNITY_ParsedDocument]]
+- 7 edges to [[_COMMUNITY_DocumentIngestionPipeline]]
+- 6 edges to [[_COMMUNITY_TestEmbeddingGenerator]]
+- 6 edges to [[_COMMUNITY_ServiceStatusRecord]]
+- 6 edges to [[_COMMUNITY_DocumentCleaner]]
+- 6 edges to [[_COMMUNITY_ConversationService]]
+- 5 edges to [[_COMMUNITY_TestStructuredLoggingAndRedaction]]
+- 5 edges to [[_COMMUNITY_DeviceRecord]]
+- 5 edges to [[_COMMUNITY_usersstore.py]]
+- 5 edges to [[_COMMUNITY_unittest_mock]]
+- 5 edges to [[_COMMUNITY_metrics__init__.py]]
+- 4 edges to [[_COMMUNITY_eval_runner.py]]
+- 4 edges to [[_COMMUNITY_test_evaluation_framework.py]]
+- 4 edges to [[_COMMUNITY_test_mongodb_integration.py]]
+- 3 edges to [[_COMMUNITY_approval.py]]
+- 3 edges to [[_COMMUNITY_ticketsmodels.py]]
+- 3 edges to [[_COMMUNITY_metrics_evaluator.py]]
+- 3 edges to [[_COMMUNITY_middleware.py]]
+- 3 edges to [[_COMMUNITY_AnswerGenerator]]
+- 2 edges to [[_COMMUNITY_AdvancedRetriever]]
+- 2 edges to [[_COMMUNITY_IncidentRecord]]
+- 2 edges to [[_COMMUNITY_TestMongoDBLiveIntegration]]
+- 2 edges to [[_COMMUNITY_TestMongoDBClient]]
+- 2 edges to [[_COMMUNITY_MarkdownParser]]
+- 2 edges to [[_COMMUNITY_test_it_evaluation.py]]
+- 2 edges to [[_COMMUNITY_QueryPreprocessor]]
+- 2 edges to [[_COMMUNITY_test_api.py]]
+- 2 edges to [[_COMMUNITY_ChatService]]
+- 2 edges to [[_COMMUNITY_operational.py]]
+- 2 edges to [[_COMMUNITY_ITCategory]]
+- 2 edges to [[_COMMUNITY_test_observability.py]]
+- 2 edges to [[_COMMUNITY_SecuritySubject]]
+- 1 edge to [[_COMMUNITY_IncidentStore]]
+- 1 edge to [[_COMMUNITY_TicketService]]
+- 1 edge to [[_COMMUNITY_ServiceStatusChecker]]
+- 1 edge to [[_COMMUNITY_get_checkpointer]]
+- 1 edge to [[_COMMUNITY_Role]]
+- 1 edge to [[_COMMUNITY_test_guardrails_adversarial.py]]
+- 1 edge to [[_COMMUNITY_test_mcp_it_tools.py]]
+- 1 edge to [[_COMMUNITY_mcp_rag_agentit_support__init__.py]]
+- 1 edge to [[_COMMUNITY_retrieval.py]]
+- 1 edge to [[_COMMUNITY_intent.py]]
+- 1 edge to [[_COMMUNITY_benchmark_retrieval.py]]
+- 1 edge to [[_COMMUNITY_compute_it_metrics]]
+- 1 edge to [[_COMMUNITY_setup.py]]
+
+## Top bridge nodes
+- [[typing]] - degree 76, connects to 34 communities
+- [[MongoDBClient]] - degree 72, connects to 19 communities
+- [[logging]] - degree 37, connects to 19 communities
+- [[config.py]] - degree 25, connects to 10 communities
+- [[asyncio_19]] - degree 19, connects to 10 communities

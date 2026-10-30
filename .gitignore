@@ -49,8 +49,12 @@ Thumbs.db
 .coverage
 htmlcov/
 coverage.xml
-.pytest_cache/
+.pytest_cache*/
 .pytest-tmp*
+.uv-cache*/
+*.db-shm
+*.db-wal
+graphify-out/cache/
 evaluation/results/eval_run_*
 !evaluation/results/eval_run_baseline.json
 !evaluation/results/eval_run_current.json
