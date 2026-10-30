@@ -3,44 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Knowledge Assistant | IT Operations & Support Copilot</title>
+    <title>Enterprise Knowledge Assistant | ChatDeck • IT Operations & Support Copilot</title>
+    <meta name="description" content="Enterprise IT Operations & Support Copilot with stateful troubleshooting runbooks, ticket lifecycle, incident management, RBAC security, and evaluation analytics.">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
 
-    <meta name="description" content="Production Enterprise IT Operations & Support Copilot with stateful troubleshooting runbooks, ticket lifecycle, incident management, RBAC security, and evaluation analytics.">
-    <!-- Google Fonts -->
+    <!-- Fonts: Inter, Plus Jakarta Sans, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="/ui/styles.css">
 </head>
 <body class="dark-theme">
     <div class="app-layout">
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
+            <!-- Sidebar Header & Brand -->
             <div class="sidebar-header">
                 <div class="brand">
                     <div class="brand-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                         </svg>
                     </div>
                     <div class="brand-text">
-                        <span class="brand-title">IT Ops Copilot</span>
-                        <span class="brand-badge" id="sidebarRoleBadge">EMPLOYEE</span>
+                        <div class="brand-title-wrap">
+                            <span class="brand-title">ChatDeck</span>
+                            <span class="brand-version-pill">v1.0</span>
+                        </div>
+                        <div class="brand-sub-wrap">
+                            <span class="brand-sub">IT Ops Copilot</span>
+                            <span class="brand-badge" id="sidebarRoleBadge">EMPLOYEE</span>
+                        </div>
                     </div>
                 </div>
-                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar" title="Close navigation">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
 
-            <!-- Role Selector -->
+            <!-- Role Selector Card -->
             <div class="role-selector-card">
-                <label class="role-label" for="activeRoleSelect">Active Enterprise Role</label>
+                <div class="role-label-group">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    <label class="role-label" for="activeRoleSelect">Active Enterprise Role</label>
+                </div>
                 <div class="select-wrapper">
                     <select id="activeRoleSelect" class="role-dropdown">
                         <option value="employee" selected>Employee (Self-Service)</option>
@@ -59,40 +69,53 @@
                 </div>
                 <nav class="nav-links" id="platformNavLinks">
                     <button class="nav-item active" data-view="chat-view" id="navChatBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        <span>IT Support Assistant</span>
+                        <div class="nav-icon-wrap">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        </div>
+                        <span class="nav-label">IT Support Assistant</span>
                     </button>
                     <button class="nav-item admin-only" data-view="dashboard-view" id="navDashboardBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-                        <span>Admin Operations</span>
+                        <div class="nav-icon-wrap">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                        </div>
+                        <span class="nav-label">Admin Operations</span>
                     </button>
                     <button class="nav-item support-only" data-view="tickets-view" id="navTicketsBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                        <span>Support Queue</span>
+                        <div class="nav-icon-wrap">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </div>
+                        <span class="nav-label">Support Queue</span>
                     </button>
                     <button class="nav-item support-only" data-view="incidents-view" id="navIncidentsBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <span>Incident Center</span>
+                        <div class="nav-icon-wrap">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <span class="nav-label">Incident Center</span>
                     </button>
                     <button class="nav-item admin-only" data-view="evaluation-view" id="navEvalBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        <span>Evaluation & Quality</span>
+                        <div class="nav-icon-wrap">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <span class="nav-label">Evaluation & Quality</span>
                     </button>
                     <button class="nav-item security-only" data-view="audit-view" id="navAuditBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <span>Security & Audit Logs</span>
+                        <div class="nav-icon-wrap">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <span class="nav-label">Security & Audit Logs</span>
                     </button>
                 </nav>
             </div>
 
-            <!-- Conversations Section -->
+            <!-- New Session Action -->
             <div class="sidebar-actions">
-                <button class="btn-new-chat" id="newChatBtn" title="Start a fresh troubleshooting session">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    <span>New Ticket / Session</span>
+                <button class="btn-new-chat shimmer-button" id="newChatBtn" title="Start a fresh troubleshooting session">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>New Session</span>
                 </button>
             </div>
 
+            <!-- Active Sessions List -->
             <div class="sidebar-section-header">
                 <span>ACTIVE SESSIONS</span>
                 <span class="thread-count" id="threadCountBadge">0</span>
@@ -104,8 +127,9 @@
                 </div>
             </div>
 
+            <!-- Sidebar Footer Status -->
             <div class="sidebar-footer">
-                <div class="status-summary" id="systemStatusTrigger" title="Click to view deep system diagnostics">
+                <div class="status-summary" id="systemStatusTrigger" title="Click to view system diagnostics">
                     <span class="status-dot status-operational" id="sidebarStatusDot"></span>
                     <div class="status-info">
                         <span class="status-label" id="sidebarStatusText">Operational</span>
@@ -121,7 +145,7 @@
             <header class="app-header">
                 <div class="header-left">
                     <button class="btn-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Open Navigation">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     </button>
                     <div class="active-thread-details">
                         <h1 class="header-title" id="activeViewTitle">IT Support Copilot</h1>
@@ -135,13 +159,21 @@
                         <span class="alert-text" id="incidentAlertText">Active Incident: VPN Gateway degraded</span>
                     </div>
 
+                    <!-- Mode & Status Pill -->
                     <button class="status-pill" id="headerStatusPill">
                         <span class="pulse-indicator status-operational" id="headerStatusDot"></span>
                         <span class="status-pill-text" id="headerStatusText">All Systems Live</span>
                     </button>
 
+                    <!-- Animated Theme Toggler -->
+                    <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Dark/Light Mode" title="Toggle theme">
+                        <svg class="sun-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        <svg class="moon-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button>
+
+                    <!-- Clear Dialogue Action -->
                     <button class="btn-header-action" id="headerClearBtn" title="Clear current dialogue history">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         <span>Clear</span>
                     </button>
                 </div>
@@ -149,7 +181,7 @@
 
             <!-- VIEW 1: Chat / Troubleshooting View -->
             <div class="view-panel active-view" id="chat-view">
-                <!-- Troubleshooting Runbook Step Tracker Widget (Phase 13-F Employee UI) -->
+                <!-- Troubleshooting Runbook Step Tracker Widget -->
                 <div class="troubleshooting-tracker-card hidden" id="runbookTrackerCard">
                     <div class="tracker-header">
                         <div class="tracker-title-group">
@@ -175,27 +207,34 @@
 
                 <!-- Messages Stream Area -->
                 <div class="messages-viewport" id="messagesViewport">
-                    <!-- Empty State Hero -->
+                    <!-- ChatDeck Empty State Hero -->
                     <div class="empty-state" id="emptyState">
-                        <div class="empty-hero-icon">
-                            <div class="hero-icon-glow"></div>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <!-- Chatdeck Pill Badge -->
+                        <div class="hero-badge-pill">
+                            <span class="badge-dot-glow"></span>
+                            <span>Enterprise AI Operations Copilot • v1.0.0</span>
                         </div>
 
-                        <h2 class="empty-title">Enterprise IT Operations & Support Copilot</h2>
+                        <!-- Chatdeck Hero Title -->
+                        <h2 class="empty-title">AI Copilot for IT Operations & Support.</h2>
                         <p class="empty-subtitle">
-                            Automated diagnostics, runbook guided troubleshooting, policy RAG, and ticket lifecycle workflows with role-based access control.
+                            Automate incident diagnostics, runbook-guided troubleshooting, enterprise policy RAG, and ticket lifecycle management. Zero hallucination, verifiable citations.
                         </p>
 
+                        <!-- System Feature Chips -->
                         <div class="system-features-row">
                             <div class="feature-chip"><span>⚡ 10 Stateful Runbooks</span></div>
                             <div class="feature-chip"><span>🎫 Automated Ticketing</span></div>
                             <div class="feature-chip"><span>🛡️ RBAC Guardrails</span></div>
-                            <div class="feature-chip"><span>📊 Evaluation Engine</span></div>
+                            <div class="feature-chip"><span>📊 Hybrid RRF Search</span></div>
                         </div>
 
+                        <!-- Starter Prompts Grid (Chatdeck Feature Cards Style) -->
                         <div class="starter-prompts-grid">
                             <button class="starter-card" data-prompt="My corporate VPN is failing to connect with gateway timeout error.">
+                                <div class="starter-icon-wrap vpn-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                                </div>
                                 <div class="starter-content">
                                     <span class="starter-title">VPN Connection Issue</span>
                                     <span class="starter-desc">Runbook diagnosis for VPN gateway and certificate failures.</span>
@@ -203,6 +242,9 @@
                             </button>
 
                             <button class="starter-card" data-prompt="How do I request write access to the company GitHub repositories?">
+                                <div class="starter-icon-wrap access-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                                </div>
                                 <div class="starter-content">
                                     <span class="starter-title">GitHub Access Request</span>
                                     <span class="starter-desc">Manager approval workflow for developer tooling access.</span>
@@ -210,6 +252,9 @@
                             </button>
 
                             <button class="starter-card" data-prompt="My MFA prompt on Okta is expired and not sending push notifications.">
+                                <div class="starter-icon-wrap mfa-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </div>
                                 <div class="starter-content">
                                     <span class="starter-title">MFA & 2FA Reset</span>
                                     <span class="starter-desc">Authenticator app sync and hardware token replacement.</span>
@@ -217,6 +262,9 @@
                             </button>
 
                             <button class="starter-card" data-prompt="I received an email asking for my credentials with a suspicious attachment.">
+                                <div class="starter-icon-wrap sec-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                </div>
                                 <div class="starter-content">
                                     <span class="starter-title">Report Phishing Email</span>
                                     <span class="starter-desc">Security incident containment and mailbox quarantine.</span>
@@ -228,10 +276,12 @@
                     <!-- Dialogue Container -->
                     <div class="dialogue-list" id="dialogueList"></div>
 
-                    <!-- Loading Typing State -->
+                    <!-- Loading State -->
                     <div class="loading-state hidden" id="loadingState">
                         <div class="assistant-avatar">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                            </svg>
                         </div>
                         <div class="loading-bubble">
                             <div class="typing-indicator">
@@ -242,25 +292,33 @@
                     </div>
                 </div>
 
-                <!-- Input Bar -->
+                <!-- Input Footer Bar -->
                 <footer class="app-footer">
+                    <!-- Quick action prompt pills -->
+                    <div class="quick-prompts-bar">
+                        <button type="button" class="quick-chip" data-prompt="Check status of corporate VPN">🌐 Check VPN</button>
+                        <button type="button" class="quick-chip" data-prompt="How many days of annual leave do employees receive in the UK?">🌴 Annual Leave Policy</button>
+                        <button type="button" class="quick-chip" data-prompt="What is the monthly remote working equipment allowance?">💻 Remote Allowance</button>
+                        <button type="button" class="quick-chip" data-prompt="My laptop DEV-001 is reporting battery failure">🔋 Device Diagnostics</button>
+                    </div>
+
                     <form class="chat-form" id="chatForm">
                         <div class="input-wrapper">
                             <textarea
                                 id="queryInput"
                                 class="query-textarea"
-                                placeholder="Describe your IT issue, request access, or report an incident..."
+                                placeholder="Describe your IT issue, ask a policy question, or trigger a runbook..."
                                 rows="1"
                                 maxlength="4000"
                                 required
                             ></textarea>
-                            <button type="submit" class="btn-send" id="sendBtn" aria-label="Send query">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            <button type="submit" class="btn-send shimmer-button" id="sendBtn" aria-label="Send query">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                             </button>
                         </div>
                     </form>
                     <div class="footer-caption">
-                        <span>IT Support Copilot • Deterministic Runbooks • Verifiable Citations • Zero Hallucination</span>
+                        <span>ChatDeck Copilot • Shift+Enter for new line • Grounded in Enterprise Knowledge & Runbooks</span>
                     </div>
                 </footer>
             </div>
@@ -269,7 +327,10 @@
             <div class="view-panel" id="dashboard-view">
                 <div class="admin-view-container">
                     <div class="view-header-bar">
-                        <h2>IT Operations Overview</h2>
+                        <div class="view-title-group">
+                            <h2>IT Operations Overview</h2>
+                            <p class="view-subtitle">Live health telemetry, operational metrics, and SLA performance</p>
+                        </div>
                         <button class="btn-secondary" id="refreshDashboardBtn">🔄 Refresh KPIs</button>
                     </div>
 
@@ -352,7 +413,10 @@
             <div class="view-panel" id="tickets-view">
                 <div class="admin-view-container">
                     <div class="view-header-bar">
-                        <h2>Support Ticket Queue</h2>
+                        <div class="view-title-group">
+                            <h2>Support Ticket Queue</h2>
+                            <p class="view-subtitle">Manage, triage, and inspect service desk tickets</p>
+                        </div>
                         <div class="filter-controls">
                             <select id="ticketStatusFilter" class="filter-dropdown">
                                 <option value="">All Statuses</option>
@@ -400,7 +464,10 @@
             <div class="view-panel" id="incidents-view">
                 <div class="admin-view-container">
                     <div class="view-header-bar">
-                        <h2>Service Incidents & Outages</h2>
+                        <div class="view-title-group">
+                            <h2>Service Incidents & Outages</h2>
+                            <p class="view-subtitle">Active alerts, ongoing investigations, and post-mortems</p>
+                        </div>
                         <button class="btn-secondary" id="refreshIncidentsBtn">Refresh Incidents</button>
                     </div>
 
@@ -470,7 +537,10 @@
             <div class="view-panel" id="audit-view">
                 <div class="admin-view-container">
                     <div class="view-header-bar">
-                        <h2>Security & Operational Audit Logs</h2>
+                        <div class="view-title-group">
+                            <h2>Security & Operational Audit Logs</h2>
+                            <p class="view-subtitle">Zero-trust audit trail of tool invocations, RBAC checks, and access attempts</p>
+                        </div>
                         <button class="btn-secondary" id="refreshAuditBtn">Refresh Audit Stream</button>
                     </div>
 
